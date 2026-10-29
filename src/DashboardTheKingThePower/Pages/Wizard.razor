@@ -1,0 +1,321 @@
+@page "/wizard"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Assistente</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Assistente</h1>
+
+<div class="max-w-3xl mx-auto">
+    @if (_isComplete)
+    {
+        <Card>
+            <div class="p-12 text-center">
+                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 class="text-xl font-semibold mb-2">Configuração concluída!</h2>
+                <p class="text-[var(--muted-foreground)] mb-6">Todas as suas informações foram salvas com sucesso.</p>
+                <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90" @onclick="ResetWizard">Recomeçar</button>
+            </div>
+        </Card>
+    }
+    else
+    {
+        <div class="flex items-center justify-between mb-8 px-4">
+            @for (int i = 1; i <= 4; i++)
+            {
+                var step = i;
+                <div class="flex items-center @(step < 4 ? "flex-1" : "")">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors @GetStepCircleClass(step)">
+                            @if (step < _currentStep)
+                            {
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            }
+                            else
+                            {
+                                @step
+                            }
+                        </div>
+                        <span class="text-xs mt-2 whitespace-nowrap @(step <= _currentStep ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]")">@GetStepLabel(step)</span>
+                    </div>
+                    @if (step < 4)
+                    {
+                        <div class="flex-1 mx-3 h-0.5 @(step < _currentStep ? "bg-green-500" : "bg-[var(--border)]")"></div>
+                    }
+                </div>
+            }
+        </div>
+
+        <Card>
+            <div class="p-6">
+                @if (!string.IsNullOrEmpty(_validationError))
+                {
+                    <div class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                        @_validationError
+                    </div>
+                }
+
+                @switch (_currentStep)
+                {
+                    case 1:
+                        <h3 class="text-lg font-semibold mb-4">Informações Pessoais</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Nome Completo</label>
+                                <input @bind="_fullName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="Maria Silva" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">E-mail</label>
+                                <input type="email" @bind="_email" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="maria@exemplo.com" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Telefone</label>
+                                <input type="tel" @bind="_phone" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="(11) 99999-9999" />
+                            </div>
+                        </div>
+                        break;
+
+                    case 2:
+                        <h3 class="text-lg font-semibold mb-4">Endereço</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Rua</label>
+                                <input @bind="_street" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="Rua das Flores, 123" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Cidade</label>
+                                    <input @bind="_city" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="São Paulo" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Estado</label>
+                                    <input @bind="_state" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="SP" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">CEP</label>
+                                    <input @bind="_zipCode" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="01234-000" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">País</label>
+                                    <input @bind="_country" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="Brasil" />
+                                </div>
+                            </div>
+                        </div>
+                        break;
+
+                    case 3:
+                        <h3 class="text-lg font-semibold mb-4">Dados de Pagamento</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Número do Cartão</label>
+                                <input @bind="_cardNumber" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="4242 4242 4242 4242" maxlength="19" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Titular do Cartão</label>
+                                <input @bind="_cardholderName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="Maria Silva" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Validade</label>
+                                    <input @bind="_expiry" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="MM/AA" maxlength="5" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">CVV</label>
+                                    <input type="password" @bind="_cvv" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)]" placeholder="123" maxlength="4" />
+                                </div>
+                            </div>
+                        </div>
+                        break;
+
+                    case 4:
+                        <h3 class="text-lg font-semibold mb-4">Revisão e Confirmação</h3>
+                        <div class="space-y-4">
+                            <div class="p-4 border border-[var(--border)] rounded-lg">
+                                <h4 class="font-medium mb-2 text-[var(--muted-foreground)] text-sm uppercase tracking-wide">Informações Pessoais</h4>
+                                <p><span class="text-[var(--muted-foreground)]">Nome:</span> @_fullName</p>
+                                <p><span class="text-[var(--muted-foreground)]">E-mail:</span> @_email</p>
+                                <p><span class="text-[var(--muted-foreground)]">Telefone:</span> @_phone</p>
+                            </div>
+                            <div class="p-4 border border-[var(--border)] rounded-lg">
+                                <h4 class="font-medium mb-2 text-[var(--muted-foreground)] text-sm uppercase tracking-wide">Endereço</h4>
+                                <p>@_street</p>
+                                <p>@_city, @_state @_zipCode</p>
+                                <p>@_country</p>
+                            </div>
+                            <div class="p-4 border border-[var(--border)] rounded-lg">
+                                <h4 class="font-medium mb-2 text-[var(--muted-foreground)] text-sm uppercase tracking-wide">Pagamento</h4>
+                                @{
+                                    var masked = _cardNumber.Length > 4
+                                        ? "**** **** **** " + _cardNumber.Replace(" ", "").Substring(_cardNumber.Replace(" ", "").Length - 4)
+                                        : _cardNumber;
+                                }
+                                <p><span class="text-[var(--muted-foreground)]">Cartão:</span> @masked</p>
+                                <p><span class="text-[var(--muted-foreground)]">Nome:</span> @_cardholderName</p>
+                                <p><span class="text-[var(--muted-foreground)]">Validade:</span> @_expiry</p>
+                            </div>
+                            <div class="flex items-center gap-2 pt-2">
+                                <input type="checkbox" id="confirmCheckbox" @bind="_confirmed" class="w-4 h-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]" />
+                                <label for="confirmCheckbox" class="text-sm text-[var(--muted-foreground)]">Confirmo que as informações acima estão corretas</label>
+                            </div>
+                        </div>
+                        break;
+                }
+            </div>
+
+            <div class="px-6 py-4 border-t border-[var(--border)] flex justify-between">
+                <div>
+                    @if (_currentStep > 1)
+                    {
+                        <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--secondary)] text-[var(--secondary-foreground)] border border-[var(--border)] hover:opacity-80" @onclick="GoBack">Voltar</button>
+                    }
+                </div>
+                <div>
+                    @if (_currentStep < 4)
+                    {
+                        <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90" @onclick="GoNext">Próximo</button>
+                    }
+                    else
+                    {
+                        <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none" disabled="@(!_confirmed)" @onclick="Submit">Enviar</button>
+                    }
+                </div>
+            </div>
+        </Card>
+    }
+</div>
+@code {
+    private int _currentStep = 1;
+    private bool _isComplete = false;
+    private string? _validationError;
+    private bool _confirmed = false;
+
+    private string _fullName = "";
+    private string _email = "";
+    private string _phone = "";
+
+    private string _street = "";
+    private string _city = "";
+    private string _state = "";
+    private string _zipCode = "";
+    private string _country = "";
+
+    private string _cardNumber = "";
+    private string _cardholderName = "";
+    private string _expiry = "";
+    private string _cvv = "";
+
+    private string GetStepLabel(int step) => step switch
+    {
+        1 => "Dados Pessoais",
+        2 => "Endereço",
+        3 => "Pagamento",
+        4 => "Confirmar",
+        _ => ""
+    };
+
+    private string GetStepCircleClass(int step) => step switch
+    {
+        _ when step < _currentStep => "bg-green-500 text-white",
+        _ when step == _currentStep => "bg-blue-500 text-white",
+        _ => "bg-[var(--muted)] text-[var(--muted-foreground)]"
+    };
+
+    private bool ValidateStep1()
+    {
+        if (string.IsNullOrWhiteSpace(_fullName)) { _validationError = "Nome completo é obrigatório."; return false; }
+        if (string.IsNullOrWhiteSpace(_email)) { _validationError = "E-mail é obrigatório."; return false; }
+        if (!_email.Contains('@')) { _validationError = "Informe um e-mail válido."; return false; }
+        if (string.IsNullOrWhiteSpace(_phone)) { _validationError = "Telefone é obrigatório."; return false; }
+        _validationError = null;
+        return true;
+    }
+
+    private bool ValidateStep2()
+    {
+        if (string.IsNullOrWhiteSpace(_street)) { _validationError = "Endereço é obrigatório."; return false; }
+        if (string.IsNullOrWhiteSpace(_city)) { _validationError = "Cidade é obrigatória."; return false; }
+        if (string.IsNullOrWhiteSpace(_state)) { _validationError = "Estado é obrigatório."; return false; }
+        if (string.IsNullOrWhiteSpace(_zipCode)) { _validationError = "CEP é obrigatório."; return false; }
+        if (string.IsNullOrWhiteSpace(_country)) { _validationError = "País é obrigatório."; return false; }
+        _validationError = null;
+        return true;
+    }
+
+    private bool ValidateStep3()
+    {
+        if (string.IsNullOrWhiteSpace(_cardNumber)) { _validationError = "Número do cartão é obrigatório."; return false; }
+        if (_cardNumber.Replace(" ", "").Length < 13) { _validationError = "O número do cartão deve ter pelo menos 13 dígitos."; return false; }
+        if (string.IsNullOrWhiteSpace(_cardholderName)) { _validationError = "Nome no cartão é obrigatório."; return false; }
+        if (string.IsNullOrWhiteSpace(_expiry)) { _validationError = "Validade é obrigatória."; return false; }
+        if (string.IsNullOrWhiteSpace(_cvv)) { _validationError = "CVV é obrigatório."; return false; }
+        if (_cvv.Length < 3) { _validationError = "O CVV deve ter pelo menos 3 dígitos."; return false; }
+        _validationError = null;
+        return true;
+    }
+
+    private void GoNext()
+    {
+        var valid = _currentStep switch
+        {
+            1 => ValidateStep1(),
+            2 => ValidateStep2(),
+            3 => ValidateStep3(),
+            _ => true
+        };
+
+        if (valid && _currentStep < 4)
+        {
+            _currentStep++;
+            _validationError = null;
+        }
+    }
+
+    private void GoBack()
+    {
+        if (_currentStep > 1)
+        {
+            _currentStep--;
+            _validationError = null;
+        }
+    }
+
+    private void Submit()
+    {
+        if (!_confirmed)
+        {
+            _validationError = "Confirme que as informações estão corretas.";
+            return;
+        }
+        _isComplete = true;
+        _validationError = null;
+    }
+
+    private void ResetWizard()
+    {
+        _currentStep = 1;
+        _isComplete = false;
+        _confirmed = false;
+        _validationError = null;
+        _fullName = "";
+        _email = "";
+        _phone = "";
+        _street = "";
+        _city = "";
+        _state = "";
+        _zipCode = "";
+        _country = "";
+        _cardNumber = "";
+        _cardholderName = "";
+        _expiry = "";
+        _cvv = "";
+    }
+}

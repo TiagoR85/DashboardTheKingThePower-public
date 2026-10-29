@@ -1,0 +1,51 @@
+@page "/ui/cards"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Cards</PageTitle>
+
+<h1 class="text-2xl font-bold mb-1">Cards</h1>
+<p class="text-sm text-[var(--muted-foreground)] mb-6">Superfícies para agrupar conteúdo — padrões do projeto.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+    <Card>
+        <ChildContent>
+            <h3 class="font-semibold">Simples</h3>
+            <p class="text-sm text-[var(--muted-foreground)] mt-2">Só conteúdo principal. Use para blocos curtos.</p>
+        </ChildContent>
+    </Card>
+
+    <Card>
+        <Header><h3 class="font-semibold">Com cabeçalho</h3></Header>
+        <ChildContent>
+            <p class="text-sm text-[var(--muted-foreground)]">O componente aceita <code>Header</code> e <code>Footer</code> como fragments.</p>
+        </ChildContent>
+        <Footer>
+            <div class="flex justify-end gap-2">
+                <Button Variant="ghost" Size="sm">Cancelar</Button>
+                <Button Size="sm">Confirmar</Button>
+            </div>
+        </Footer>
+    </Card>
+
+    <Card>
+        <ChildContent>
+            <p class="text-sm text-[var(--muted-foreground)]">Receita do mês</p>
+            <p class="text-2xl font-bold mt-1">R$ 48.290,00</p>
+            <p class="text-xs text-green-600 mt-1">+12% vs. mês anterior</p>
+        </ChildContent>
+    </Card>
+
+    <Card Class="hover:border-[var(--primary)] transition-colors">
+        <ChildContent>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-semibold">Com ação</h3>
+                    <p class="text-sm text-[var(--muted-foreground)] mt-1">Hover destaca a borda.</p>
+                </div>
+                <Button Variant="secondary" Size="sm">Abrir</Button>
+            </div>
+        </ChildContent>
+    </Card>
+</div>

@@ -1,0 +1,78 @@
+﻿@page "/"
+@using DashboardTheKingThePower.Components.dashboard
+@using DashboardTheKingThePower.Components.charts
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Dashboard The King The Power</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Olá, @_userName 👋</h1>
+<p class="text-[var(--muted-foreground)] mb-6">Aqui está o que está acontecendo hoje.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <KpiCard Title="Tarefas de Hoje" Value="12" SparklineData="@tasksSparkline">
+    </KpiCard>
+    <KpiCard Title="Projetos Ativos" Value="8" SparklineData="@projectsSparkline">
+    </KpiCard>
+    <KpiCard Title="Crescimento da Receita" Value="+24%" SparklineData="@revenueSparkline">
+    </KpiCard>
+    <KpiCard Title="Novos Clientes" Value="156" SparklineData="@customersSparkline">
+    </KpiCard>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+    <div class="lg:col-span-2">
+        <AreaChart />
+    </div>
+    <div>
+        <DonutChart />
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+    <div>
+        <MonthlyGoals />
+    </div>
+    <div>
+        <AppointmentsList />
+    </div>
+    <div>
+        <TransactionsTable />
+    </div>
+</div>
+
+<div class="mt-6">
+    <h3 class="font-semibold mb-4">Quick Actions</h3>
+    <QuickActions />
+</div>
+@code {
+    [Inject] private DashboardTheKingThePower.Services.AuthStateProvider AuthStateProvider { get; set; } = default!;
+    private string _userName = "você";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthStateProvider.GetCurrentUserAsync();
+        if (user != null)
+            _userName = user.Name.Split(' ')[0]; // só primeiro nome
+    }
+
+    private List<Sparkline.SparklineData> tasksSparkline = new()
+    {
+        new("1", 5), new("2", 8), new("3", 6), new("4", 10), new("5", 12), new("6", 9), new("7", 12)
+    };
+    
+    private List<Sparkline.SparklineData> projectsSparkline = new()
+    {
+        new("1", 3), new("2", 5), new("3", 4), new("4", 7), new("5", 6), new("6", 8), new("7", 8)
+    };
+    
+    private List<Sparkline.SparklineData> revenueSparkline = new()
+    {
+        new("1", 10), new("2", 15), new("3", 12), new("4", 18), new("5", 22), new("6", 20), new("7", 24)
+    };
+    
+    private List<Sparkline.SparklineData> customersSparkline = new()
+    {
+        new("1", 50), new("2", 70), new("3", 60), new("4", 90), new("5", 110), new("6", 130), new("7", 156)
+    };
+}

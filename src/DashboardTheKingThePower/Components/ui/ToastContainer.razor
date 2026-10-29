@@ -1,0 +1,112 @@
+@using DashboardTheKingThePower.Services
+
+@if (_toasts.Any())
+{
+    <div class="fixed top-4 right-4 z-[110] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+        @foreach (var toast in _toasts)
+        {
+            <div class="pointer-events-auto flex items-start gap-3 p-4 rounded-lg border shadow-lg transition-all duration-300 @GetContainerClass(toast.Type) @(toast.IsVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full")">
+                <div class="flex-shrink-0 mt-0.5">
+                    @if (toast.Type == "success")
+                    {
+                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    }
+                    else if (toast.Type == "error")
+                    {
+                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    }
+                    else if (toast.Type == "warning")
+                    {
+                        <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg class="w-5 h-5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    }
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium">@toast.Message</p>
+                </div>
+                <button @onclick="() => RemoveToast(toast)" class="flex-shrink-0 text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Inject] private ToastService ToastService { get; set; } = default!;
+
+    private List<ToastItem> _toasts = new();
+    private CancellationTokenSource? _cts;
+
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += HandleShow;
+        _cts = new CancellationTokenSource();
+        _ = AutoRemoveLoop(_cts.Token);
+    }
+
+    private void HandleShow(string message, string type)
+    {
+        var toast = new ToastItem { Message = message, Type = type, IsVisible = true };
+        _toasts.Add(toast);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task AutoRemoveLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            await Task.Delay(1000, ct);
+            var expired = _toasts.Where(t => (DateTime.Now - t.CreatedAt).TotalSeconds >= 4).ToList();
+            foreach (var toast in expired)
+            {
+                toast.IsVisible = false;
+                StateHasChanged();
+                await Task.Delay(300, ct);
+                _toasts.Remove(toast);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void RemoveToast(ToastItem toast)
+    {
+        _toasts.Remove(toast);
+        StateHasChanged();
+    }
+
+    private string GetContainerClass(string type) => type switch
+    {
+        "success" => "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
+        "error" => "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
+        "warning" => "bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800",
+        _ => "bg-[var(--card)] border-[var(--border)]"
+    };
+
+    private class ToastItem
+    {
+        public string Message { get; set; } = "";
+        public string Type { get; set; } = "info";
+        public bool IsVisible { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

@@ -1,0 +1,370 @@
+@page "/calendar"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Calendário</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Calendário</h1>
+    <Button OnClick="ShowAddModal">+ Novo Evento</Button>
+</div>
+
+<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-2">
+        <button class="px-3 py-1 text-sm rounded-lg @(activeView == "monthly" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--secondary)]")" @onclick="SetMonthlyView">Mensal</button>
+        <button class="px-3 py-1 text-sm rounded-lg @(activeView == "weekly" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--secondary)]")" @onclick="SetWeeklyView">Semanal</button>
+        <button class="px-3 py-1 text-sm rounded-lg @(activeView == "daily" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--secondary)]")" @onclick="SetDailyView">Diário</button>
+    </div>
+    <div class="flex items-center gap-2">
+        <button class="px-3 py-1 text-sm rounded-lg hover:bg-[var(--secondary)]" @onclick="PrevPeriod">&lt;</button>
+        <span class="font-semibold px-4">@currentPeriodLabel</span>
+        <button class="px-3 py-1 text-sm rounded-lg hover:bg-[var(--secondary)]" @onclick="NextPeriod">&gt;</button>
+        <button class="px-3 py-1 text-sm rounded-lg hover:bg-[var(--secondary)]" @onclick="GoToToday">Hoje</button>
+    </div>
+</div>
+
+@if (activeView == "monthly")
+{
+    <Card>
+        <div class="grid grid-cols-7 border-b border-[var(--border)]">
+            @foreach (var day in dayNames)
+            {
+                <div class="p-3 text-center text-sm font-medium text-[var(--muted-foreground)] border-r border-[var(--border)] last:border-r-0">
+                    @day
+                </div>
+            }
+        </div>
+        <div class="grid grid-cols-7">
+            @foreach (var day in calendarDays)
+            {
+                <div class="min-h-[100px] border-r border-b border-[var(--border)] last:border-r-0 @(day.IsCurrentMonth ? "" : "bg-[var(--muted)]")">
+                    <div class="p-2 flex items-center justify-between">
+                        <span class="text-sm @(day.IsToday ? "bg-[var(--primary)] text-white w-7 h-7 rounded-full flex items-center justify-center" : "")">
+                            @day.Date.Day
+                        </span>
+                        @if (day.Events.Any())
+                        {
+                            <button class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]" @onclick="() => ShowDayEvents(day)">+@day.Events.Count</button>
+                        }
+                    </div>
+                    <div class="px-1 space-y-1">
+                        @foreach (var evt in day.Events.Take(3))
+                        {
+                            <div class="text-xs p-1 rounded truncate cursor-pointer" style="background-color: @evt.Color; color: white;" @onclick="() => ShowEditModal(evt)">
+                                @evt.Title
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </Card>
+}
+else if (activeView == "weekly")
+{
+    <Card>
+        <div class="grid grid-cols-7 border-b border-[var(--border)]">
+            @foreach (var day in weekDays)
+            {
+                <div class="p-3 text-center border-r border-[var(--border)] last:border-r-0 @(day.IsToday ? "bg-[var(--primary)] text-white" : "")">
+                    <div class="text-sm font-medium">@day.Date.ToString("ddd")</div>
+                    <div class="text-lg font-bold">@day.Date.Day</div>
+                </div>
+            }
+        </div>
+        <div class="grid grid-cols-7 min-h-[400px]">
+            @foreach (var day in weekDays)
+            {
+                <div class="border-r border-[var(--border)] last:border-r-0 p-2 space-y-2">
+                    @foreach (var evt in day.Events)
+                    {
+                        <div class="text-xs p-2 rounded cursor-pointer" style="background-color: @evt.Color; color: white;" @onclick="() => ShowEditModal(evt)">
+                            <div class="font-medium">@evt.Title</div>
+                            <div>@evt.StartTime - @evt.EndTime</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </Card>
+}
+else if (activeView == "daily")
+{
+    <Card>
+        <div class="p-4 border-b border-[var(--border)]">
+            <div class="text-lg font-bold">@currentDate.ToString("dddd, MMMM d, yyyy")</div>
+        </div>
+        <div class="divide-y divide-[var(--border)]">
+            @foreach (var hour in Enumerable.Range(8, 12))
+            {
+                <div class="flex">
+                    <div class="w-20 p-4 text-sm text-[var(--muted-foreground)] border-r border-[var(--border)]">
+                        @($"{hour}:00")
+                    </div>
+                    <div class="flex-1 p-2 min-h-[60px]">
+                        @foreach (var evt in GetEventsForHour(hour))
+                        {
+                            <div class="p-2 rounded mb-1 cursor-pointer" style="background-color: @evt.Color; color: white;" @onclick="() => ShowEditModal(evt)">
+                                <div class="font-medium">@evt.Title</div>
+                                <div class="text-xs">@evt.StartTime - @evt.EndTime</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </Card>
+}
+
+@if (showModal)
+{
+    <Modal IsOpen="true" OnClose="CloseModal">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4">@(editingEvent == null ? "Novo Evento" : "Editar Evento")</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Título</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newEventTitle" placeholder="Título do evento" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Data</label>
+                        <input type="date" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" value="@newEventDate.ToString("yyyy-MM-dd")" @onchange="OnDateChange" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Cor</label>
+                        <div class="flex gap-2">
+                            @foreach (var color in eventColors)
+                            {
+                                <button class="w-8 h-8 rounded-full @(newEventColor == color ? "ring-2 ring-offset-2 ring-[var(--primary)]" : "")" style="background-color: @color" @onclick="() => newEventColor = color"></button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Hora de Início</label>
+                        <input type="time" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" value="@newEventStartTime" @onchange="OnStartTimeChange" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Hora de Término</label>
+                        <input type="time" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" value="@newEventEndTime" @onchange="OnEndTimeChange" />
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                @if (editingEvent != null)
+                {
+                    <button class="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600" @onclick="DeleteEvent">Excluir</button>
+                }
+                <button class="px-4 py-2 text-sm rounded-lg border border-[var(--border)] hover:bg-[var(--secondary)]" @onclick="CloseModal">Cancelar</button>
+                <button class="px-4 py-2 text-sm rounded-lg bg-[var(--primary)] text-white hover:opacity-90" @onclick="SaveEvent">Salvar</button>
+            </div>
+        </div>
+    </Modal>
+}
+@code {
+    private string activeView = "monthly";
+    private DateTime currentDate = DateTime.Today;
+    private bool showModal = false;
+    private CalendarEvent? editingEvent = null;
+    private string newEventTitle = "";
+    private DateTime newEventDate = DateTime.Today;
+    private string newEventStartTime = "09:00";
+    private string newEventEndTime = "10:00";
+    private string newEventColor = "#3b82f6";
+
+    private string[] dayNames = new[] { "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb" };
+    private string[] eventColors = new[] { "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899" };
+
+    private List<CalendarEvent> events = new()
+    {
+        new() { Id = 1, Title = "Reunião de Equipe", Date = DateTime.Today, StartTime = "09:00", EndTime = "10:00", Color = "#3b82f6" },
+        new() { Id = 2, Title = "Ligação com Cliente", Date = DateTime.Today, StartTime = "14:00", EndTime = "15:00", Color = "#10b981" },
+        new() { Id = 3, Title = "Revisão do Projeto", Date = DateTime.Today.AddDays(1), StartTime = "11:00", EndTime = "12:00", Color = "#f59e0b" },
+        new() { Id = 4, Title = "Planejamento de Sprint", Date = DateTime.Today.AddDays(2), StartTime = "10:00", EndTime = "11:30", Color = "#8b5cf6" },
+        new() { Id = 5, Title = "Workshop de Design", Date = DateTime.Today.AddDays(5), StartTime = "13:00", EndTime = "15:00", Color = "#ec4899" }
+    };
+
+    private string currentPeriodLabel => activeView switch
+    {
+        "monthly" => currentDate.ToString("MMMM yyyy"),
+        "weekly" => $"Semana de {GetWeekStart().ToString("MMM d, yyyy")}",
+        "daily" => currentDate.ToString("MMMM d, yyyy"),
+        _ => ""
+    };
+
+    private List<CalendarDay> calendarDays => GenerateCalendarDays();
+    private List<CalendarDay> weekDays => GenerateWeekDays();
+
+    private void SetMonthlyView() { activeView = "monthly"; }
+    private void SetWeeklyView() { activeView = "weekly"; }
+    private void SetDailyView() { activeView = "daily"; }
+
+    private void PrevPeriod()
+    {
+        currentDate = activeView switch
+        {
+            "monthly" => currentDate.AddMonths(-1),
+            "weekly" => currentDate.AddDays(-7),
+            "daily" => currentDate.AddDays(-1),
+            _ => currentDate
+        };
+    }
+
+    private void NextPeriod()
+    {
+        currentDate = activeView switch
+        {
+            "monthly" => currentDate.AddMonths(1),
+            "weekly" => currentDate.AddDays(7),
+            "daily" => currentDate.AddDays(1),
+            _ => currentDate
+        };
+    }
+
+    private void GoToToday() { currentDate = DateTime.Today; }
+
+    private DateTime GetWeekStart() => currentDate.AddDays(-(int)currentDate.DayOfWeek);
+
+    private List<CalendarDay> GenerateCalendarDays()
+    {
+        var firstDay = new DateTime(currentDate.Year, currentDate.Month, 1);
+        var startDay = firstDay.AddDays(-(int)firstDay.DayOfWeek);
+        var days = new List<CalendarDay>();
+
+        for (int i = 0; i < 42; i++)
+        {
+            var date = startDay.AddDays(i);
+            days.Add(new CalendarDay
+            {
+                Date = date,
+                IsCurrentMonth = date.Month == currentDate.Month,
+                IsToday = date.Date == DateTime.Today,
+                Events = events.Where(e => e.Date.Date == date.Date).ToList()
+            });
+        }
+        return days;
+    }
+
+    private List<CalendarDay> GenerateWeekDays()
+    {
+        var start = GetWeekStart();
+        var days = new List<CalendarDay>();
+        for (int i = 0; i < 7; i++)
+        {
+            var date = start.AddDays(i);
+            days.Add(new CalendarDay
+            {
+                Date = date,
+                IsToday = date.Date == DateTime.Today,
+                Events = events.Where(e => e.Date.Date == date.Date).ToList()
+            });
+        }
+        return days;
+    }
+
+    private List<CalendarEvent> GetEventsForHour(int hour) =>
+        events.Where(e => e.Date.Date == currentDate.Date && int.Parse(e.StartTime.Split(':')[0]) == hour).ToList();
+
+    private void ShowDayEvents(CalendarDay day)
+    {
+        currentDate = day.Date;
+        activeView = "daily";
+    }
+
+    private void ShowAddModal()
+    {
+        editingEvent = null;
+        newEventTitle = "";
+        newEventDate = currentDate;
+        newEventStartTime = "09:00";
+        newEventEndTime = "10:00";
+        newEventColor = "#3b82f6";
+        showModal = true;
+    }
+
+    private void ShowEditModal(CalendarEvent evt)
+    {
+        editingEvent = evt;
+        newEventTitle = evt.Title;
+        newEventDate = evt.Date;
+        newEventStartTime = evt.StartTime;
+        newEventEndTime = evt.EndTime;
+        newEventColor = evt.Color;
+        showModal = true;
+    }
+
+    private void CloseModal() { showModal = false; editingEvent = null; }
+
+    private void OnDateChange(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+            newEventDate = date;
+    }
+
+    private void OnStartTimeChange(ChangeEventArgs e)
+    {
+        newEventStartTime = e.Value?.ToString() ?? "09:00";
+    }
+
+    private void OnEndTimeChange(ChangeEventArgs e)
+    {
+        newEventEndTime = e.Value?.ToString() ?? "10:00";
+    }
+
+    private void SaveEvent()
+    {
+        if (string.IsNullOrWhiteSpace(newEventTitle)) return;
+
+        if (editingEvent == null)
+        {
+            events.Add(new CalendarEvent
+            {
+                Id = events.Any() ? events.Max(e => e.Id) + 1 : 1,
+                Title = newEventTitle,
+                Date = newEventDate,
+                StartTime = newEventStartTime,
+                EndTime = newEventEndTime,
+                Color = newEventColor
+            });
+        }
+        else
+        {
+            editingEvent.Title = newEventTitle;
+            editingEvent.Date = newEventDate;
+            editingEvent.StartTime = newEventStartTime;
+            editingEvent.EndTime = newEventEndTime;
+            editingEvent.Color = newEventColor;
+        }
+        CloseModal();
+    }
+
+    private void DeleteEvent()
+    {
+        if (editingEvent != null)
+        {
+            events.Remove(editingEvent);
+            CloseModal();
+        }
+    }
+
+    private class CalendarDay
+    {
+        public DateTime Date { get; set; }
+        public bool IsCurrentMonth { get; set; }
+        public bool IsToday { get; set; }
+        public List<CalendarEvent> Events { get; set; } = new();
+    }
+
+    private class CalendarEvent
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public DateTime Date { get; set; }
+        public string StartTime { get; set; } = "";
+        public string EndTime { get; set; } = "";
+        public string Color { get; set; } = "";
+    }
+}

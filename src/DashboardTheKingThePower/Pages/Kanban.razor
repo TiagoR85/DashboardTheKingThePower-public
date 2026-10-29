@@ -1,0 +1,313 @@
+@page "/kanban"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>Quadro Kanban</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Quadro Kanban</h1>
+    <Button OnClick="ShowAddModal">+ Adicionar Tarefa</Button>
+</div>
+
+<div class="flex gap-6 overflow-x-auto pb-4">
+    @foreach (var column in columns)
+    {
+        <div class="min-w-[300px] flex-shrink-0">
+            <div class="bg-[var(--secondary)] rounded-lg p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-semibold">@column.Title</h3>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--border)]">@column.Cards.Count</span>
+                    </div>
+                    <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]">+</button>
+                </div>
+                <div id="kanban-col-@column.Id" class="space-y-3 min-h-[100px]">
+                    @foreach (var card in column.Cards)
+                    {
+                        <div id="@card.Id" draggable="true" class="bg-[var(--background)] rounded-lg p-4 shadow-sm border border-[var(--border)] cursor-pointer hover:border-[var(--primary)] transition-colors" @onclick="() => ShowEditModal(card)">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs px-2 py-0.5 rounded-full" style="background-color: @card.PriorityColor; color: white;">
+                                    @card.Priority
+                                </span>
+                                <span class="text-xs text-[var(--muted-foreground)]">@card.Id</span>
+                            </div>
+                            <h4 class="font-medium mb-2">@card.Title</h4>
+                            <p class="text-sm text-[var(--muted-foreground)] mb-3">@card.Description</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-[var(--primary)] flex items-center justify-center text-white text-xs">
+                                        @string.Concat(card.Assignee.Split(' ').Select(n => n[0].ToString()))
+                                    </div>
+                                    <span class="text-xs text-[var(--muted-foreground)]">@card.Assignee</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    @foreach (var tag in card.Tags.Take(2))
+                                    {
+                                        <span class="text-xs px-1.5 py-0.5 rounded bg-[var(--muted)] text-[var(--muted-foreground)]">@tag</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <Modal IsOpen="true" OnClose="CloseModal">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4">@(editingCard == null ? "Adicionar Tarefa" : "Editar Tarefa")</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Título</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newCardTitle" placeholder="Título da tarefa" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Descrição</label>
+                    <textarea class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] h-20" @bind="newCardDescription" placeholder="Descrição da tarefa"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Prioridade</label>
+                        <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newCardPriority">
+                            <option value="Low">Baixa</option>
+                            <option value="Medium">Média</option>
+                            <option value="High">Alta</option>
+                            <option value="Urgent">Urgente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Responsável</label>
+                        <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newCardAssignee" placeholder="Nome do responsável" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Coluna</label>
+                    <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newCardColumn">
+                        @foreach (var col in columns)
+                        {
+                            <option value="@col.Id">@col.Title</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Tags (separadas por vírgula)</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newCardTags" placeholder="tag1, tag2, tag3" />
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                @if (editingCard != null)
+                {
+                    <button class="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600" @onclick="DeleteCard">Excluir</button>
+                }
+                <button class="px-4 py-2 text-sm rounded-lg border border-[var(--border)] hover:bg-[var(--secondary)]" @onclick="CloseModal">Cancelar</button>
+                <button class="px-4 py-2 text-sm rounded-lg bg-[var(--primary)] text-white hover:opacity-90" @onclick="SaveCard">Salvar</button>
+            </div>
+        </div>
+    </Modal>
+}
+@code {
+    private bool showModal = false;
+    private KanbanCard? editingCard = null;
+    private string newCardTitle = "";
+    private string newCardDescription = "";
+    private string newCardPriority = "Medium";
+    private string newCardAssignee = "";
+    private int newCardColumn = 1;
+    private string newCardTags = "";
+    private DotNetObjectReference<Kanban>? _dotNetRef;
+
+    private List<KanbanColumn> columns = new()
+    {
+        new KanbanColumn
+        {
+            Id = 1,
+            Title = "A Fazer",
+            Cards = new List<KanbanCard>
+            {
+                new() { Id = "TASK-001", Title = "Atualizar fluxo de autenticação de usuários", Description = "Redesenhar as páginas de login e registro para melhor UX", Priority = "High", PriorityColor = "#ef4444", Assignee = "John Smith", Tags = new() { "Auth", "UI" } },
+                new() { Id = "TASK-002", Title = "Implementar alternância de modo escuro", Description = "Adicionar troca de tema às configurações", Priority = "Medium", PriorityColor = "#f59e0b", Assignee = "Sarah Johnson", Tags = new() { "Feature", "UI" } },
+                new() { Id = "TASK-003", Title = "Corrigir problemas de responsividade no mobile", Description = "Corrigir quebra de layout em telas pequenas", Priority = "Low", PriorityColor = "#10b981", Assignee = "Mike Wilson", Tags = new() { "Bug", "Mobile" } }
+            }
+        },
+        new KanbanColumn
+        {
+            Id = 2,
+            Title = "Em Progresso",
+            Cards = new List<KanbanCard>
+            {
+                new() { Id = "TASK-004", Title = "Construir dashboard de análises", Description = "Criar componentes de gráficos e visualização de dados", Priority = "High", PriorityColor = "#ef4444", Assignee = "Emily Davis", Tags = new() { "Feature", "Analytics" } },
+                new() { Id = "TASK-005", Title = "Integração com a API", Description = "Conectar o frontend aos serviços do backend", Priority = "Medium", PriorityColor = "#f59e0b", Assignee = "John Smith", Tags = new() { "Backend", "Integration" } }
+            }
+        },
+        new KanbanColumn
+        {
+            Id = 3,
+            Title = "Revisão",
+            Cards = new List<KanbanCard>
+            {
+                new() { Id = "TASK-006", Title = "Code review do módulo de pagamentos", Description = "Revisar a PR #42 da integração de pagamentos", Priority = "Urgent", PriorityColor = "#dc2626", Assignee = "Sarah Johnson", Tags = new() { "Review", "Payment" } }
+            }
+        },
+        new KanbanColumn
+        {
+            Id = 4,
+            Title = "Concluído",
+            Cards = new List<KanbanCard>
+            {
+                new() { Id = "TASK-007", Title = "Configurar estrutura do projeto", Description = "Inicializar projeto Blazor com Tailwind CSS", Priority = "Medium", PriorityColor = "#f59e0b", Assignee = "Mike Wilson", Tags = new() { "Setup" } },
+                new() { Id = "TASK-008", Title = "Criar biblioteca de componentes", Description = "Construir componentes reutilizáveis de UI", Priority = "Low", PriorityColor = "#10b981", Assignee = "Emily Davis", Tags = new() { "Components", "UI" } }
+            }
+        }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+        }
+        await JS.InvokeVoidAsync("initKanbanDrag", _dotNetRef);
+    }
+
+    [JSInvokable]
+    public void OnCardMoved(string cardId, string fromColId, string toColId, int newIndex)
+    {
+        var fromColumn = columns.FirstOrDefault(c => $"kanban-col-{c.Id}" == fromColId);
+        var toColumn = columns.FirstOrDefault(c => $"kanban-col-{c.Id}" == toColId);
+        if (fromColumn == null || toColumn == null) return;
+
+        var card = fromColumn.Cards.FirstOrDefault(c => c.Id == cardId);
+        if (card == null) return;
+
+        fromColumn.Cards.Remove(card);
+        toColumn.Cards.Insert(Math.Min(newIndex, toColumn.Cards.Count), card);
+        StateHasChanged();
+    }
+
+    private void ShowAddModal()
+    {
+        editingCard = null;
+        newCardTitle = "";
+        newCardDescription = "";
+        newCardPriority = "Medium";
+        newCardAssignee = "";
+        newCardColumn = 1;
+        newCardTags = "";
+        showModal = true;
+    }
+
+    private void ShowEditModal(KanbanCard card)
+    {
+        editingCard = card;
+        newCardTitle = card.Title;
+        newCardDescription = card.Description;
+        newCardPriority = card.Priority;
+        newCardAssignee = card.Assignee;
+        newCardColumn = columns.First(c => c.Cards.Contains(card)).Id;
+        newCardTags = string.Join(", ", card.Tags);
+        showModal = true;
+    }
+
+    private void CloseModal() { showModal = false; editingCard = null; }
+
+    private void SaveCard()
+    {
+        if (string.IsNullOrWhiteSpace(newCardTitle)) return;
+
+        var priorityColor = newCardPriority switch
+        {
+            "Low" => "#10b981",
+            "Medium" => "#f59e0b",
+            "High" => "#ef4444",
+            "Urgent" => "#dc2626",
+            _ => "#f59e0b"
+        };
+
+        var tags = newCardTags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+
+        if (editingCard == null)
+        {
+            var column = columns.First(c => c.Id == newCardColumn);
+            var id = $"TASK-{(columns.Sum(c => c.Cards.Count) + 1).ToString("D3")}";
+            column.Cards.Add(new KanbanCard
+            {
+                Id = id,
+                Title = newCardTitle,
+                Description = newCardDescription,
+                Priority = newCardPriority,
+                PriorityColor = priorityColor,
+                Assignee = newCardAssignee,
+                Tags = tags
+            });
+        }
+        else
+        {
+            editingCard.Title = newCardTitle;
+            editingCard.Description = newCardDescription;
+            editingCard.Priority = newCardPriority;
+            editingCard.PriorityColor = priorityColor;
+            editingCard.Assignee = newCardAssignee;
+            editingCard.Tags = tags;
+
+            var sourceColumn = columns.First(c => c.Cards.Contains(editingCard));
+            var targetColumn = columns.First(c => c.Id == newCardColumn);
+
+            if (sourceColumn.Id != targetColumn.Id)
+            {
+                sourceColumn.Cards.Remove(editingCard);
+                targetColumn.Cards.Add(editingCard);
+            }
+        }
+        CloseModal();
+    }
+
+    private void DeleteCard()
+    {
+        if (editingCard != null)
+        {
+            var column = columns.First(c => c.Cards.Contains(editingCard));
+            column.Cards.Remove(editingCard);
+            CloseModal();
+        }
+    }
+
+    public void Dispose()
+    {
+        _dotNetRef?.Dispose();
+        DestroyKanbanDrag();
+    }
+
+    private async void DestroyKanbanDrag()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("destroyKanbanDrag");
+        }
+        catch { }
+    }
+
+    private class KanbanColumn
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public List<KanbanCard> Cards { get; set; } = new();
+    }
+
+    private class KanbanCard
+    {
+        public string Id { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Priority { get; set; } = "";
+        public string PriorityColor { get; set; } = "";
+        public string Assignee { get; set; } = "";
+        public List<string> Tags { get; set; } = new();
+    }
+}

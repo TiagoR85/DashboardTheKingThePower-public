@@ -1,0 +1,370 @@
+@page "/notifications"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Notificações</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Notificações</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <Card>
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Total</p>
+                    <p class="text-2xl font-bold mt-1">@notifications.Count</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Não Lidas</p>
+                    <p class="text-2xl font-bold mt-1">@notifications.Count(n => !n.IsRead)</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Hoje</p>
+                    <p class="text-2xl font-bold mt-1">@notifications.Count(n => n.Timestamp.StartsWith("Just now") || n.Timestamp.StartsWith("Minutes") || n.Timestamp.StartsWith("1 hour") || n.Timestamp.StartsWith("2 hours"))</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Esta Semana</p>
+                    <p class="text-2xl font-bold mt-1">@notifications.Count(n => n.Timestamp.Contains("day") || n.Timestamp.StartsWith("Just now") || n.Timestamp.StartsWith("Minutes") || n.Timestamp.Contains("hour"))</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2">
+        <Card>
+            <div class="p-4 border-b border-[var(--border)]">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex gap-2 flex-wrap">
+                        @foreach (var filter in filters)
+                        {
+                            <button class="px-3 py-1.5 text-xs rounded-lg @(activeFilter == filter ? "bg-[var(--primary)] text-white" : "border border-[var(--border)] hover:bg-[var(--muted)]")" @onclick="() => SetFilter(filter)">@filter</button>
+                        }
+                    </div>
+                    <button class="px-3 py-1.5 text-xs border border-[var(--border)] rounded-lg hover:bg-[var(--muted)]" @onclick="MarkAllAsRead">Marcar todas como lidas</button>
+                </div>
+            </div>
+            <div class="divide-y divide-[var(--border)] max-h-[600px] overflow-y-auto">
+                @foreach (var notification in filteredNotifications)
+                {
+                    <div class="p-4 flex items-start gap-4 @(notification.IsRead ? "" : "bg-[var(--muted)]/50")">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: @GetTypeColor(notification.Type)/15">
+                            @if (notification.Type == "system")
+                            {
+                                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"/>
+                                </svg>
+                            }
+                            else if (notification.Type == "security")
+                            {
+                                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                            }
+                            else if (notification.Type == "social")
+                            {
+                                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                            }
+                            else if (notification.Type == "marketing")
+                            {
+                                <svg class="w-5 h-5 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                                </svg>
+                            }
+                            else if (notification.Type == "reminder")
+                            {
+                                <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="font-medium text-sm @(notification.IsRead ? "" : "font-semibold")">@notification.Title</p>
+                                    <p class="text-sm text-[var(--muted-foreground)] mt-0.5">@notification.Message</p>
+                                </div>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    @if (!notification.IsRead)
+                                    {
+                                        <button class="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)]" title="Marcar como lida" @onclick="() => ToggleRead(notification.Id)">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                            </svg>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)]" title="Marcar como não lida" @onclick="() => ToggleRead(notification.Id)">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                            </svg>
+                                        </button>
+                                    }
+                                    <button class="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--muted-foreground)] hover:text-red-500" title="Excluir" @onclick="() => DeleteNotification(notification.Id)">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-xs px-2 py-0.5 rounded-full" style="background-color: @GetTypeColor(notification.Type)/15; color: @GetTypeColor(notification.Type)">@notification.Type</span>
+                                <span class="text-xs text-[var(--muted-foreground)]">@notification.Timestamp</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!filteredNotifications.Any())
+                {
+                    <div class="p-8 text-center text-[var(--muted-foreground)]">
+                        <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <p class="font-medium">Nenhuma notificação</p>
+                        <p class="text-sm mt-1">Você está em dia!</p>
+                    </div>
+                }
+            </div>
+        </Card>
+    </div>
+
+    <div class="space-y-6">
+        <Card>
+            <div class="p-6">
+                <h3 class="font-semibold mb-4">Preferências de Notificação</h3>
+                <div class="space-y-5">
+                    @foreach (var setting in notificationSettings)
+                    {
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium">@setting.Name</p>
+                                <p class="text-xs text-[var(--muted-foreground)]">@setting.Description</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked="@setting.Enabled" @onchange="() => ToggleSetting(setting)" class="sr-only peer" />
+                                <div class="w-11 h-6 bg-[var(--muted)] peer-focus:ring-2 peer-focus:ring-[var(--primary)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--primary)]"></div>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </Card>
+
+        <Card>
+            <div class="p-6">
+                <h3 class="font-semibold mb-4">Tipos de Notificação</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/15 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Sistema</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">Atualizações e manutenção da plataforma</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-red-500/15 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Segurança</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">Alertas de login e avisos de acesso</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Social</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">Atividade da equipe e menções</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-violet-500/15 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Marketing</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">Novidades do produto e ofertas</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-yellow-500/15 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">Lembretes</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">Tarefas agendadas e prazos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    </div>
+</div>
+@code {
+    private string activeFilter = "All";
+    private readonly string[] filters = new[] { "All", "Unread", "System", "Security", "Social", "Marketing", "Reminders" };
+
+    private List<NotificationSetting> notificationSettings = new()
+    {
+        new("Notificações por email", "Receber email para novas mensagens", true),
+        new("Notificações push", "Receber notificações push no navegador", true),
+        new("Alertas na área de trabalho", "Mostrar banners de notificação na área de trabalho", false),
+        new("Resumo semanal", "Receber email de resumo semanal", false),
+        new("Emails de marketing", "Receber novidades do produto e ofertas", false)
+    };
+
+    private List<NotificationItem> notifications = new()
+    {
+        new(1, "System", "Manutenção do servidor agendada", "Janela de manutenção planejada em 12 de ago., das 2:00 às 4:00 UTC. Espere breve indisponibilidade do serviço.", "5 minutes ago", false),
+        new(2, "Security", "Novo login detectado", "Um novo login foi detectado via Chrome no Windows em San Francisco, CA.", "18 minutes ago", false),
+        new(3, "Social", "Sarah comentou em sua publicação", "Sarah deixou um comentário no documento de planejamento do Q3: \"Ótima análise!\"", "32 minutes ago", false),
+        new(4, "System", "Backup do banco de dados concluído", "Seu backup semanal do banco de dados foi concluído com sucesso. Tamanho do arquivo: 2.4 GB.", "1 hour ago", false),
+        new(5, "Reminder", "Reunião de equipe daqui a 30 minutos", "A reunião diária começa às 9h30. Entre na chamada do Zoom.", "1 hour ago", false),
+        new(6, "Marketing", "Novo recurso: Dashboards Inteligentes", "Apresentamos os Dashboards Inteligentes com insights baseados em IA. Experimente agora!", "2 hours ago", false),
+        new(7, "Security", "Senha alterada com sucesso", "A senha da sua conta foi alterada. Se você não fez essa alteração, contate o suporte.", "3 hours ago", true),
+        new(8, "Social", "Mike mencionou você em um canal", "Mike marcou você em #project-alpha: \"@user pode revisar a especificação da API?\"", "4 hours ago", true),
+        new(9, "System", "Uso de armazenamento em 85%", "Sua conta está usando 85% do armazenamento alocado. Considere atualizar seu plano.", "5 hours ago", true),
+        new(10, "Reminder", "Fatura #INV-2047 vence amanhã", "O pagamento da fatura #INV-2047 (US$ 1.250,00) vence amanhã.", "6 hours ago", true),
+        new(11, "Social", "Novo membro entrou na equipe", "Alex Johnson entrou na equipe de Engenharia. Diga olá!", "Yesterday", true),
+        new(12, "System", "Aviso de limite de API", "Seu uso da API atingiu 90% do limite mensal. Restam 2.847 chamadas.", "Yesterday", true),
+        new(13, "Marketing", "Webinário: Análises Avançadas", "Participe do nosso webinário sobre Análises Avançadas nesta quinta-feira às 14h (Horário de Brasília).", "2 days ago", true),
+        new(14, "Security", "Autenticação de dois fatores ativada", "A autenticação de dois fatores foi ativada com sucesso para a sua conta.", "3 days ago", true),
+        new(15, "Reminder", "Prazo do projeto estendido", "O prazo do Projeto Phoenix foi estendido até 20 de ago.", "4 days ago", true)
+    };
+
+    private IEnumerable<NotificationItem> filteredNotifications => activeFilter switch
+    {
+        "Unread" => notifications.Where(n => !n.IsRead),
+        "System" => notifications.Where(n => n.Type == "system"),
+        "Security" => notifications.Where(n => n.Type == "security"),
+        "Social" => notifications.Where(n => n.Type == "social"),
+        "Marketing" => notifications.Where(n => n.Type == "marketing"),
+        "Reminders" => notifications.Where(n => n.Type == "reminder"),
+        _ => notifications
+    };
+
+    private void SetFilter(string filter) => activeFilter = filter;
+
+    private void ToggleRead(int id)
+    {
+        var n = notifications.FirstOrDefault(x => x.Id == id);
+        if (n != null) n.IsRead = !n.IsRead;
+    }
+
+    private void MarkAllAsRead()
+    {
+        foreach (var n in notifications)
+            n.IsRead = true;
+    }
+
+    private void DeleteNotification(int id)
+    {
+        notifications.RemoveAll(n => n.Id == id);
+    }
+
+    private void ToggleSetting(NotificationSetting setting)
+    {
+        setting.Enabled = !setting.Enabled;
+    }
+
+    private string GetTypeColor(string type) => type switch
+    {
+        "system" => "#3b82f6",
+        "security" => "#ef4444",
+        "social" => "#10b981",
+        "marketing" => "#8b5cf6",
+        "reminder" => "#eab308",
+        _ => "#6b7280"
+    };
+
+    public class NotificationItem
+    {
+        public int Id { get; set; }
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string Timestamp { get; set; } = "";
+        public bool IsRead { get; set; }
+
+        public NotificationItem(int id, string type, string title, string message, string timestamp, bool isRead)
+        {
+            Id = id;
+            Type = type;
+            Title = title;
+            Message = message;
+            Timestamp = timestamp;
+            IsRead = isRead;
+        }
+    }
+
+    public class NotificationSetting
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public bool Enabled { get; set; }
+
+        public NotificationSetting(string name, string description, bool enabled)
+        {
+            Name = name;
+            Description = description;
+            Enabled = enabled;
+        }
+    }
+}

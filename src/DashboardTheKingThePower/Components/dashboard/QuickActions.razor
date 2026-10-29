@@ -1,0 +1,23 @@
+@using DashboardTheKingThePower.Components.ui
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    @foreach (var action in actions)
+    {
+        <button class="flex flex-col items-center gap-2 p-4 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--secondary)] transition-colors">
+            <span class="text-2xl">@action.Icon</span>
+            <span class="text-sm font-medium">@action.Label</span>
+        </button>
+    }
+</div>
+
+@code {
+    private List<QuickAction> actions = new()
+    {
+        new("📅", "Novo Agendamento"),
+        new("👤", "Adicionar Cliente"),
+        new("💳", "Processar Pagamento"),
+        new("📊", "Ver Relatórios")
+    };
+    
+    private record QuickAction(string Icon, string Label);
+}

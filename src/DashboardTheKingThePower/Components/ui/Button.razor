@@ -1,0 +1,27 @@
+<button class="@($"inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors {VariantClass} {SizeClass}")" disabled="@Disabled" @onclick="OnClick">
+    @ChildContent
+</button>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Variant { get; set; } = "primary";
+    [Parameter] public string Size { get; set; } = "md";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    
+    private string VariantClass => Variant switch
+    {
+        "primary" => "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90",
+        "secondary" => "bg-[var(--secondary)] text-[var(--secondary-foreground)] border border-[var(--border)]",
+        "ghost" => "hover:bg-[var(--secondary)]",
+        _ => "bg-[var(--primary)] text-[var(--primary-foreground)]"
+    };
+    
+    private string SizeClass => Size switch
+    {
+        "sm" => "h-8 px-3 text-xs",
+        "md" => "h-10 px-4",
+        "lg" => "h-12 px-6",
+        _ => "h-10 px-4"
+    };
+}

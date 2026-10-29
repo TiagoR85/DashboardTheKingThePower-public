@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/node_modules/
+**/.git/
+**/TestResults/
+**/e2e/
+*.md
+LICENSE
+.gitignore
+docker-compose.yml

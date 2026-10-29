@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <script>
+        // GitHub Pages SPA redirect for Blazor WASM
+        var path = window.location.pathname;
+        var query = window.location.search;
+        var hash = window.location.hash;
+        // Store the full path in sessionStorage
+        sessionStorage.setItem('redirect', path + query + hash);
+        // Redirect to the base path
+        window.location.replace('/DashboardTheKingThePower/');
+    </script>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
+</html>

@@ -1,0 +1,464 @@
+@page "/users"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Usuários</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Usuários</h1>
+    <Button OnClick="ShowCreateModal">+ Adicionar Usuário</Button>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Total de Usuários</p>
+            <p class="text-2xl font-bold mt-1">@users.Count</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Ativo</p>
+            <p class="text-2xl font-bold mt-1 text-green-500">@users.Count(u => u.Status == "Active")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Administradores</p>
+            <p class="text-2xl font-bold mt-1 text-purple-500">@users.Count(u => u.Role == "Admin")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Novos neste Mês</p>
+            <p class="text-2xl font-bold mt-1 text-blue-500">@users.Count(u => u.CreatedMonth == DateTime.Now.ToString("MMM"))</p>
+        </div>
+    </Card>
+</div>
+
+<Card>
+    <div class="p-4 border-b border-[var(--border)]">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <input class="flex-1 w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="Buscar usuários..." @bind="searchTerm" />
+            <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm w-full sm:w-auto" @bind="filterRole">
+                <option value="all">Todos os Perfis</option>
+                <option value="Admin">Admin</option>
+                <option value="Editor">Editor</option>
+                <option value="Viewer">Leitor</option>
+            </select>
+            <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm w-full sm:w-auto" @bind="filterStatus">
+                <option value="all">Todos os Status</option>
+                <option value="Active">Ativo</option>
+                <option value="Inactive">Inativo</option>
+                <option value="Suspended">Suspenso</option>
+            </select>
+            <div class="flex gap-1 border border-[var(--border)] rounded-lg p-0.5">
+                <button class="p-1.5 rounded-md transition-colors @(viewMode == "table" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--secondary)]")" @onclick="SetTableView">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                </button>
+                <button class="p-1.5 rounded-md transition-colors @(viewMode == "grid" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "hover:bg-[var(--secondary)]")" @onclick="SetGridView">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (viewMode == "table")
+    {
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-[var(--border)]">
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Usuário</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Email</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Perfil</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Status</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Última Atividade</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in filteredUsers)
+                    {
+                        <tr class="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style="background-color: @user.Color">
+                                        @GetInitials(user.Name)
+                                    </div>
+                                    <div>
+                                        <span class="font-medium text-sm">@user.Name</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)]">@user.Email</td>
+                            <td class="p-4">
+                                @if (user.Role == "Admin")
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">Admin</span>
+                                }
+                                else if (user.Role == "Editor")
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Editor</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Leitor</span>
+                                }
+                            </td>
+                            <td class="p-4">
+                                @if (user.Status == "Active")
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ativo</span>
+                                }
+                                else if (user.Status == "Suspended")
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Suspenso</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Inativo</span>
+                                }
+                            </td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)]">@user.LastActive</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-sm font-medium" @onclick="() => StartEdit(user)">Editar</button>
+                                    <button class="text-orange-500 hover:text-orange-700 text-sm font-medium" @onclick="() => ConfirmDeactivate(user)">Desativar</button>
+                                    <button class="text-red-500 hover:text-red-700 text-sm font-medium" @onclick="() => ConfirmDelete(user)">Excluir</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            @if (!filteredUsers.Any())
+            {
+                <div class="p-8 text-center text-[var(--muted-foreground)] text-sm">Nenhum usuário encontrado.</div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="p-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach (var user in filteredUsers)
+                {
+                    <div class="rounded-xl border border-[var(--border)] p-5 hover:shadow-md transition-shadow">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-semibold" style="background-color: @user.Color">
+                                    @GetInitials(user.Name)
+                                </div>
+                                <div>
+                                    <p class="font-medium text-sm">@user.Name</p>
+                                    <p class="text-xs text-[var(--muted-foreground)]">@user.Email</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button class="p-1.5 rounded-md hover:bg-[var(--secondary)]" @onclick="() => StartEdit(user)">
+                                    <svg class="w-4 h-4 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                </button>
+                                <button class="p-1.5 rounded-md hover:bg-[var(--secondary)]" @onclick="() => ConfirmDelete(user)">
+                                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 mb-3">
+                            @if (user.Role == "Admin")
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">Admin</span>
+                            }
+                            else if (user.Role == "Editor")
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Editor</span>
+                            }
+                            else
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Leitor</span>
+                            }
+                            @if (user.Status == "Active")
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ativo</span>
+                            }
+                            else if (user.Status == "Suspended")
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Suspenso</span>
+                            }
+                            else
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Inativo</span>
+                            }
+                        </div>
+                        <p class="text-xs text-[var(--muted-foreground)]">Última atividade: @user.LastActive</p>
+                    </div>
+                }
+                @if (!filteredUsers.Any())
+                {
+                    <div class="col-span-full p-8 text-center text-[var(--muted-foreground)] text-sm">Nenhum usuário encontrado.</div>
+                }
+            </div>
+        </div>
+    }
+</Card>
+
+<Modal IsOpen="showDeleteModal" OnClose="() => showDeleteModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-2">Excluir Usuário</h3>
+        <p class="text-sm text-[var(--muted-foreground)] mb-6">
+            Tem certeza de que deseja excluir <strong>@userToDelete?.Name</strong>? Esta ação não pode ser desfeita.
+        </p>
+        <div class="flex justify-end gap-3">
+            <Button Variant="secondary" OnClick="() => showDeleteModal = false">Cancelar</Button>
+            <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700" @onclick="DeleteUser">Excluir</button>
+        </div>
+    </div>
+</Modal>
+
+<Modal IsOpen="showDeactivateModal" OnClose="() => showDeactivateModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-2">Desativar Usuário</h3>
+        <p class="text-sm text-[var(--muted-foreground)] mb-6">
+            Tem certeza de que deseja desativar <strong>@userToDeactivate?.Name</strong>?
+        </p>
+        <div class="flex justify-end gap-3">
+            <Button Variant="secondary" OnClick="() => showDeactivateModal = false">Cancelar</Button>
+            <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-orange-600 text-white hover:bg-orange-700" @onclick="DeactivateUser">Desativar</button>
+        </div>
+    </div>
+</Modal>
+
+<Modal IsOpen="showCreateModal" OnClose="() => showCreateModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4">Adicionar Novo Usuário</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Nome</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newName" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newEmail" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Perfil</label>
+                <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newRole">
+                    <option value="Viewer">Leitor</option>
+                    <option value="Editor">Editor</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Status</label>
+                <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newStatus">
+                    <option value="Active">Ativo</option>
+                    <option value="Inactive">Inativo</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <Button Variant="secondary" OnClick="() => showCreateModal = false">Cancelar</Button>
+            <Button OnClick="CreateUser">Adicionar Usuário</Button>
+        </div>
+    </div>
+</Modal>
+
+<Modal IsOpen="showEditModal" OnClose="() => showEditModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4">Editar Usuário</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Nome</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editName" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editEmail" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Perfil</label>
+                <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editRole">
+                    <option value="Viewer">Leitor</option>
+                    <option value="Editor">Editor</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Status</label>
+                <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editStatus">
+                    <option value="Active">Ativo</option>
+                    <option value="Inactive">Inativo</option>
+                    <option value="Suspended">Suspenso</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <Button Variant="secondary" OnClick="() => showEditModal = false">Cancelar</Button>
+            <Button OnClick="SaveEdit">Salvar Alterações</Button>
+        </div>
+    </div>
+</Modal>
+@code {
+    private string searchTerm = "";
+    private string filterRole = "all";
+    private string filterStatus = "all";
+    private string viewMode = "table";
+
+    private bool showDeleteModal = false;
+    private User? userToDelete;
+
+    private bool showDeactivateModal = false;
+    private User? userToDeactivate;
+
+    private bool showCreateModal = false;
+    private string newName = "";
+    private string newEmail = "";
+    private string newRole = "Viewer";
+    private string newStatus = "Active";
+
+    private bool showEditModal = false;
+    private string editingUserId = "";
+    private string editName = "";
+    private string editEmail = "";
+    private string editRole = "";
+    private string editStatus = "";
+
+    private string[] avatarColors = new[]
+    {
+        "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#f59e0b",
+        "#ec4899", "#06b6d4", "#84cc16", "#f97316", "#6366f1",
+        "#14b8a6", "#e11d48"
+    };
+
+    private List<User> users = new()
+    {
+        new("USR-001", "Alice Johnson", "alice.johnson@company.com", "Admin", "Active", "Aug 08, 2026", "#8b5cf6", "Aug"),
+        new("USR-002", "Bob Martinez", "bob.martinez@company.com", "Editor", "Active", "Aug 07, 2026", "#3b82f6", "Aug"),
+        new("USR-003", "Carol Chen", "carol.chen@company.com", "Admin", "Active", "Aug 09, 2026", "#ec4899", "Aug"),
+        new("USR-004", "David Kim", "david.kim@company.com", "Viewer", "Active", "Aug 06, 2026", "#10b981", "Aug"),
+        new("USR-005", "Emma Wilson", "emma.wilson@company.com", "Editor", "Inactive", "Jul 22, 2026", "#f59e0b", "Jul"),
+        new("USR-006", "Frank Thompson", "frank.thompson@company.com", "Viewer", "Suspended", "Jun 15, 2026", "#ef4444", "Jun"),
+        new("USR-007", "Grace Lee", "grace.lee@company.com", "Editor", "Active", "Aug 05, 2026", "#06b6d4", "Aug"),
+        new("USR-008", "Henry Davis", "henry.davis@company.com", "Viewer", "Active", "Aug 03, 2026", "#84cc16", "Aug"),
+        new("USR-009", "Irene Patel", "irene.patel@company.com", "Admin", "Inactive", "Jul 30, 2026", "#f97316", "Jul"),
+        new("USR-010", "Jack Robinson", "jack.robinson@company.com", "Editor", "Active", "Aug 01, 2026", "#6366f1", "Aug")
+    };
+
+    private IEnumerable<User> filteredUsers => users
+        .Where(u => (filterRole == "all" || u.Role == filterRole) &&
+                     (filterStatus == "all" || u.Status == filterStatus) &&
+                     (string.IsNullOrEmpty(searchTerm) ||
+                      u.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      u.Id.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    private string GetInitials(string name)
+    {
+        var parts = name.Split(' ').Where(n => n.Length > 0).Select(n => n[0].ToString()).ToList();
+        if (parts.Count == 0) return "";
+        if (parts.Count == 1) return parts[0];
+        return parts[0] + parts[1];
+    }
+
+    private void ShowCreateModal()
+    {
+        newName = "";
+        newEmail = "";
+        newRole = "Viewer";
+        newStatus = "Active";
+        showCreateModal = true;
+    }
+
+    private void CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(newName) || string.IsNullOrWhiteSpace(newEmail))
+            return;
+
+        var nextId = users.Count + 1;
+        var color = avatarColors[nextId % avatarColors.Length];
+        var now = DateTime.Now;
+        var month = now.ToString("MMM");
+        users.Add(new User(
+            $"USR-{nextId:D3}",
+            newName,
+            newEmail,
+            newRole,
+            newStatus,
+            now.ToString("MMM dd, yyyy"),
+            color,
+            month
+        ));
+        showCreateModal = false;
+    }
+
+    private void StartEdit(User user)
+    {
+        editingUserId = user.Id;
+        editName = user.Name;
+        editEmail = user.Email;
+        editRole = user.Role;
+        editStatus = user.Status;
+        showEditModal = true;
+    }
+
+    private void SaveEdit()
+    {
+        if (string.IsNullOrEmpty(editingUserId)) return;
+
+        var index = users.FindIndex(u => u.Id == editingUserId);
+        if (index >= 0)
+        {
+            users[index] = users[index] with
+            {
+                Name = editName,
+                Email = editEmail,
+                Role = editRole,
+                Status = editStatus
+            };
+        }
+        showEditModal = false;
+        editingUserId = "";
+    }
+
+    private void ConfirmDeactivate(User user)
+    {
+        userToDeactivate = user;
+        showDeactivateModal = true;
+    }
+
+    private void DeactivateUser()
+    {
+        if (userToDeactivate != null)
+        {
+            var index = users.FindIndex(u => u.Id == userToDeactivate.Id);
+            if (index >= 0)
+            {
+                users[index] = users[index] with { Status = "Inactive" };
+            }
+            userToDeactivate = null;
+            showDeactivateModal = false;
+        }
+    }
+
+    private void ConfirmDelete(User user)
+    {
+        userToDelete = user;
+        showDeleteModal = true;
+    }
+
+    private void DeleteUser()
+    {
+        if (userToDelete != null)
+        {
+            users.Remove(userToDelete);
+            userToDelete = null;
+            showDeleteModal = false;
+        }
+    }
+
+    private void SetTableView() => viewMode = "table";
+    private void SetGridView() => viewMode = "grid";
+
+    public record User(string Id, string Name, string Email, string Role, string Status, string LastActive, string Color, string CreatedMonth);
+}

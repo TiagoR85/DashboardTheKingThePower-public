@@ -1,0 +1,20 @@
+@using DashboardTheKingThePower.Components.charts
+@using DashboardTheKingThePower.Components.ui
+
+<Card Class="relative overflow-hidden">
+    <div class="flex items-start justify-between">
+        <div>
+            <p class="text-sm text-[var(--muted-foreground)]">@Title</p>
+            <p class="text-2xl font-bold mt-1">@Value</p>
+        </div>
+    </div>
+    <div class="mt-4">
+        <Sparkline Data="@SparklineData" />
+    </div>
+</Card>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public List<Sparkline.SparklineData> SparklineData { get; set; } = new();
+}

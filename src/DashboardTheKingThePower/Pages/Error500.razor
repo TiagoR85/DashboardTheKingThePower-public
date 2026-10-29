@@ -1,0 +1,14 @@
+@page "/500"
+@inject NavigationManager Navigation
+
+<PageTitle>Erro interno</PageTitle>
+
+<div class="min-h-[60vh] flex flex-col items-center justify-center text-center">
+    <p class="text-6xl font-bold text-[var(--primary)]">500</p>
+    <h1 class="text-xl font-semibold mt-4">Algo deu errado por aqui</h1>
+    <p class="text-sm text-[var(--muted-foreground)] mt-2 max-w-md">Ocorreu um erro inesperado. Tente novamente — se persistir, volte para o início.</p>
+    <div class="mt-6 flex gap-3">
+        <button class="px-4 py-2 text-sm rounded-lg bg-[var(--primary)] text-white hover:opacity-90" @onclick='() => Navigation.NavigateTo("")'>Voltar ao dashboard</button>
+        <button class="px-4 py-2 text-sm rounded-lg border border-[var(--border)] hover:bg-[var(--secondary)]" @onclick='() => Navigation.NavigateTo("/500")'>Tentar de novo</button>
+    </div>
+</div>

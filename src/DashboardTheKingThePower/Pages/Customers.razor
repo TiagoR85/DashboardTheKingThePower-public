@@ -1,0 +1,402 @@
+@page "/customers"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Clientes</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Clientes</h1>
+    <Button OnClick="ShowCreateModal">+ Adicionar Cliente</Button>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Total de Clientes</p>
+            <p class="text-2xl font-bold mt-1">@customers.Count</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Ativos</p>
+            <p class="text-2xl font-bold mt-1 text-green-500">@customers.Count(c => c.Status == "Active")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Novos Neste Mês</p>
+            <p class="text-2xl font-bold mt-1 text-blue-500">@customers.Count(c => c.JoinedMonth == DateTime.Now.ToString("MMM"))</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Receita</p>
+            <p class="text-2xl font-bold mt-1 text-emerald-500">@customers.Sum(c => c.TotalSpent).ToString("C0")</p>
+        </div>
+    </Card>
+</div>
+
+<Card>
+    <div class="p-4 border-b border-[var(--border)]">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="relative flex-1 w-full">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <input class="w-full pl-10 pr-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="Buscar clientes..." @bind="searchTerm" />
+            </div>
+            <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm w-full sm:w-auto" @bind="filterStatus">
+                <option value="all">Todos os Status</option>
+                <option value="Active">Ativo</option>
+                <option value="Inactive">Inativo</option>
+                <option value="VIP">VIP</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-[var(--border)]">
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Cliente</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Email</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Telefone</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Localização</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Pedidos</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Total Gasto</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Status</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var customer in filteredCustomers)
+                {
+                    <tr class="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0" style="background-color: @customer.Color">
+                                    @GetInitials(customer.Name)
+                                </div>
+                                <span class="font-medium text-sm">@customer.Name</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-sm text-[var(--muted-foreground)]">@customer.Email</td>
+                        <td class="p-4 text-sm text-[var(--muted-foreground)]">@customer.Phone</td>
+                        <td class="p-4 text-sm text-[var(--muted-foreground)]">@customer.Location</td>
+                        <td class="p-4 text-sm">@customer.Orders</td>
+                        <td class="p-4 text-sm font-medium">@customer.TotalSpent.ToString("C0")</td>
+                        <td class="p-4">
+                            @if (customer.Status == "Active")
+                            {
+                                <Badge Variant="success">Ativo</Badge>
+                            }
+                            else if (customer.Status == "VIP")
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">VIP</span>
+                            }
+                            else
+                            {
+                                <Badge>Inativo</Badge>
+                            }
+                        </td>
+                        <td class="p-4">
+                            <div class="flex items-center gap-2">
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-sm font-medium" @onclick="() => ViewCustomer(customer)">Ver</button>
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-sm font-medium" @onclick="() => StartEdit(customer)">Editar</button>
+                                <button class="text-red-500 hover:text-red-700 text-sm font-medium" @onclick="() => ConfirmDelete(customer)">Excluir</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (!filteredCustomers.Any())
+        {
+            <div class="p-8 text-center text-[var(--muted-foreground)] text-sm">Nenhum cliente encontrado.</div>
+        }
+    </div>
+</Card>
+
+<Modal IsOpen="showViewModal" OnClose="() => showViewModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4">Detalhes do Cliente</h3>
+        @if (viewingCustomer != null)
+        {
+            <div class="space-y-3">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-semibold" style="background-color: @viewingCustomer.Color">
+                        @GetInitials(viewingCustomer.Name)
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg">@viewingCustomer.Name</p>
+                        <p class="text-sm text-[var(--muted-foreground)]">@viewingCustomer.Email</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div><span class="text-[var(--muted-foreground)]">Telefone:</span> <span class="ml-2">@viewingCustomer.Phone</span></div>
+                    <div><span class="text-[var(--muted-foreground)]">Localização:</span> <span class="ml-2">@viewingCustomer.Location</span></div>
+                    <div><span class="text-[var(--muted-foreground)]">Pedidos:</span> <span class="ml-2">@viewingCustomer.Orders</span></div>
+                    <div><span class="text-[var(--muted-foreground)]">Total Gasto:</span> <span class="ml-2 font-medium">@viewingCustomer.TotalSpent.ToString("C0")</span></div>
+                    <div>
+                        <span class="text-[var(--muted-foreground)]">Status:</span>
+                        <span class="ml-2">
+                            @if (viewingCustomer.Status == "Active")
+                            {
+                                <Badge Variant="success">Ativo</Badge>
+                            }
+                            else if (viewingCustomer.Status == "VIP")
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">VIP</span>
+                            }
+                            else
+                            {
+                                <Badge>Inativo</Badge>
+                            }
+                        </span>
+                    </div>
+                    <div><span class="text-[var(--muted-foreground)]">Ingressou em:</span> <span class="ml-2">@viewingCustomer.JoinedMonth</span></div>
+                </div>
+            </div>
+        }
+        <div class="flex justify-end mt-6">
+            <Button Variant="secondary" OnClick="() => showViewModal = false">Fechar</Button>
+        </div>
+    </div>
+</Modal>
+
+<Modal IsOpen="showDeleteModal" OnClose="() => showDeleteModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-2">Excluir Cliente</h3>
+        <p class="text-sm text-[var(--muted-foreground)] mb-6">
+            Tem certeza de que deseja excluir <strong>@customerToDelete?.Name</strong>? Esta ação não pode ser desfeita.
+        </p>
+        <div class="flex justify-end gap-3">
+            <Button Variant="secondary" OnClick="() => showDeleteModal = false">Cancelar</Button>
+            <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700" @onclick="DeleteCustomer">Excluir</button>
+        </div>
+    </div>
+</Modal>
+
+<Modal IsOpen="showCreateModal" OnClose="() => showCreateModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4">Adicionar Novo Cliente</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Nome</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newName" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newEmail" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Telefone</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="(11) 91234-5678" @bind="newPhone" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Localização</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newLocation" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Status</label>
+                <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newStatus">
+                    <option value="Active">Ativo</option>
+                    <option value="Inactive">Inativo</option>
+                    <option value="VIP">VIP</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <Button Variant="secondary" OnClick="() => showCreateModal = false">Cancelar</Button>
+            <Button OnClick="CreateCustomer">Adicionar Cliente</Button>
+        </div>
+    </div>
+</Modal>
+
+<Modal IsOpen="showEditModal" OnClose="() => showEditModal = false">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4">Editar Cliente</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Nome</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editName" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editEmail" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Telefone</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editPhone" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Localização</label>
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editLocation" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Status</label>
+                <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="editStatus">
+                    <option value="Active">Ativo</option>
+                    <option value="Inactive">Inativo</option>
+                    <option value="VIP">VIP</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <Button Variant="secondary" OnClick="() => showEditModal = false">Cancelar</Button>
+            <Button OnClick="SaveEdit">Salvar Alterações</Button>
+        </div>
+    </div>
+</Modal>
+@code {
+    private string searchTerm = "";
+    private string filterStatus = "all";
+
+    private bool showViewModal = false;
+    private Customer? viewingCustomer;
+
+    private bool showDeleteModal = false;
+    private Customer? customerToDelete;
+
+    private bool showCreateModal = false;
+    private string newName = "";
+    private string newEmail = "";
+    private string newPhone = "";
+    private string newLocation = "";
+    private string newStatus = "Active";
+
+    private bool showEditModal = false;
+    private string editingCustomerId = "";
+    private string editName = "";
+    private string editEmail = "";
+    private string editPhone = "";
+    private string editLocation = "";
+    private string editStatus = "";
+
+    private string[] avatarColors = new[]
+    {
+        "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#f59e0b",
+        "#ec4899", "#06b6d4", "#84cc16", "#f97316", "#6366f1",
+        "#14b8a6", "#e11d48"
+    };
+
+    private List<Customer> customers = new()
+    {
+        new("CUST-001", "James Anderson", "james.anderson@gmail.com", "(555) 234-5678", "New York, NY", 24, 1850.00m, "Active", "Aug", "#3b82f6"),
+        new("CUST-002", "Sarah Mitchell", "sarah.mitchell@outlook.com", "(555) 345-6789", "Los Angeles, CA", 18, 3200.00m, "VIP", "Aug", "#ec4899"),
+        new("CUST-003", "Michael Chen", "michael.chen@yahoo.com", "(555) 456-7890", "San Francisco, CA", 31, 4750.00m, "VIP", "Jul", "#10b981"),
+        new("CUST-004", "Emily Rodriguez", "emily.rodriguez@gmail.com", "(555) 567-8901", "Chicago, IL", 9, 620.00m, "Active", "Jul", "#f59e0b"),
+        new("CUST-005", "David Thompson", "david.thompson@icloud.com", "(555) 678-9012", "Houston, TX", 15, 1340.00m, "Active", "Jun", "#8b5cf6"),
+        new("CUST-006", "Jessica Martinez", "jessica.martinez@gmail.com", "(555) 789-0123", "Phoenix, AZ", 4, 290.00m, "Inactive", "Jun", "#ef4444"),
+        new("CUST-007", "Daniel Wilson", "daniel.wilson@protonmail.com", "(555) 890-1234", "Philadelphia, PA", 27, 5120.00m, "VIP", "May", "#06b6d4"),
+        new("CUST-008", "Amanda Taylor", "amanda.taylor@gmail.com", "(555) 901-2345", "San Antonio, TX", 11, 870.00m, "Active", "May", "#84cc16"),
+        new("CUST-009", "Christopher Brown", "chris.brown@outlook.com", "(555) 012-3456", "San Diego, CA", 2, 150.00m, "Inactive", "Apr", "#f97316"),
+        new("CUST-010", "Michelle Davis", "michelle.davis@yahoo.com", "(555) 123-4567", "Dallas, TX", 22, 2890.00m, "Active", "Apr", "#6366f1"),
+        new("CUST-011", "Robert Johnson", "robert.johnson@gmail.com", "(555) 234-5679", "Austin, TX", 7, 540.00m, "Active", "Mar", "#14b8a6"),
+        new("CUST-012", "Jennifer White", "jennifer.white@icloud.com", "(555) 345-6780", "Seattle, WA", 35, 6480.00m, "VIP", "Mar", "#e11d48")
+    };
+
+    private IEnumerable<Customer> filteredCustomers => customers
+        .Where(c => (filterStatus == "all" || c.Status == filterStatus) &&
+                     (string.IsNullOrEmpty(searchTerm) ||
+                      c.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      c.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      c.Phone.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      c.Location.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    private string GetInitials(string name)
+    {
+        var parts = name.Split(' ').Where(n => n.Length > 0).Select(n => n[0].ToString()).ToList();
+        if (parts.Count == 0) return "";
+        if (parts.Count == 1) return parts[0];
+        return parts[0] + parts[1];
+    }
+
+    private void ViewCustomer(Customer customer)
+    {
+        viewingCustomer = customer;
+        showViewModal = true;
+    }
+
+    private void ShowCreateModal()
+    {
+        newName = "";
+        newEmail = "";
+        newPhone = "";
+        newLocation = "";
+        newStatus = "Active";
+        showCreateModal = true;
+    }
+
+    private void CreateCustomer()
+    {
+        if (string.IsNullOrWhiteSpace(newName) || string.IsNullOrWhiteSpace(newEmail))
+            return;
+
+        var nextId = customers.Count + 1;
+        var color = avatarColors[nextId % avatarColors.Length];
+        var now = DateTime.Now;
+        var month = now.ToString("MMM");
+        customers.Add(new Customer(
+            $"CUST-{nextId:D3}",
+            newName,
+            newEmail,
+            newPhone,
+            newLocation,
+            0,
+            0m,
+            newStatus,
+            month,
+            color
+        ));
+        showCreateModal = false;
+    }
+
+    private void StartEdit(Customer customer)
+    {
+        editingCustomerId = customer.Id;
+        editName = customer.Name;
+        editEmail = customer.Email;
+        editPhone = customer.Phone;
+        editLocation = customer.Location;
+        editStatus = customer.Status;
+        showEditModal = true;
+    }
+
+    private void SaveEdit()
+    {
+        if (string.IsNullOrEmpty(editingCustomerId)) return;
+
+        var index = customers.FindIndex(c => c.Id == editingCustomerId);
+        if (index >= 0)
+        {
+            customers[index] = customers[index] with
+            {
+                Name = editName,
+                Email = editEmail,
+                Phone = editPhone,
+                Location = editLocation,
+                Status = editStatus
+            };
+        }
+        showEditModal = false;
+        editingCustomerId = "";
+    }
+
+    private void ConfirmDelete(Customer customer)
+    {
+        customerToDelete = customer;
+        showDeleteModal = true;
+    }
+
+    private void DeleteCustomer()
+    {
+        if (customerToDelete != null)
+        {
+            customers.Remove(customerToDelete);
+            customerToDelete = null;
+            showDeleteModal = false;
+        }
+    }
+
+    public record Customer(string Id, string Name, string Email, string Phone, string Location, int Orders, decimal TotalSpent, string Status, string JoinedMonth, string Color);
+}

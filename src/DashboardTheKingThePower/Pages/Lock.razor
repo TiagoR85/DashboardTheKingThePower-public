@@ -1,0 +1,13 @@
+@page "/lock"
+@inject NavigationManager Navigation
+
+<PageTitle>Sessão bloqueada</PageTitle>
+
+<div class="min-h-[60vh] flex flex-col items-center justify-center text-center">
+    <div class="w-16 h-16 rounded-full bg-[var(--secondary)] flex items-center justify-center mb-4">
+        <svg aria-hidden="true" class="w-8 h-8 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+    </div>
+    <h1 class="text-xl font-semibold">Sessão bloqueada</h1>
+    <p class="text-sm text-[var(--muted-foreground)] mt-2">Seu trabalho continua salvo. Desbloqueie para voltar ao dashboard.</p>
+    <button class="mt-6 px-6 py-2 text-sm rounded-lg bg-[var(--primary)] text-white hover:opacity-90" @onclick='() => Navigation.NavigateTo("")'>Desbloquear</button>
+</div>

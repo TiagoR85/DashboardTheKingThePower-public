@@ -1,0 +1,302 @@
+@page "/crm"
+@using DashboardTheKingThePower.Components.ui
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>CRM</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">CRM</h1>
+    <Button OnClick="ShowAddModal">+ Adicionar Contato</Button>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Total de Contatos</p>
+            <p class="text-2xl font-bold mt-1">@contacts.Count</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Negócios Ativos</p>
+            <p class="text-2xl font-bold mt-1">@deals.Count(d => d.Stage != "Closed")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Receita do Pipeline</p>
+            <p class="text-2xl font-bold mt-1">$@deals.Where(d => d.Stage != "Closed").Sum(d => d.Value).ToString("N0")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Taxa de Conversão</p>
+            <p class="text-2xl font-bold mt-1">@(deals.Any() ? (deals.Count(d => d.Stage == "Closed Won") * 100 / deals.Count) : 0)%</p>
+        </div>
+    </Card>
+</div>
+
+<div class="flex gap-2 mb-6">
+    <button class="px-4 py-2 text-sm rounded-lg @(activeTab == "contacts" ? "bg-[var(--primary)] text-white" : "border border-[var(--border)] hover:bg-[var(--secondary)]")" @onclick="SetContactsTab">Contatos</button>
+    <button class="px-4 py-2 text-sm rounded-lg @(activeTab == "pipeline" ? "bg-[var(--primary)] text-white" : "border border-[var(--border)] hover:bg-[var(--secondary)]")" @onclick="SetPipelineTab">Pipeline</button>
+</div>
+
+@if (activeTab == "contacts")
+{
+    <Card>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-[var(--border)]">
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Contato</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Empresa</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Email</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Status</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Valor</th>
+                        <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var contact in contacts)
+                    {
+                        <tr class="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium" style="background-color: @contact.Color">
+                                        @string.Concat(contact.Name.Split(' ').Select(n => n[0].ToString()))
+                                    </div>
+                                    <span class="font-medium">@contact.Name</span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-sm">@contact.Company</td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)]">@contact.Email</td>
+                            <td class="p-4">
+                                <span class="text-xs px-2 py-1 rounded-full" style="background-color: @contact.StatusColor; color: white;">@contact.Status</span>
+                            </td>
+                            <td class="p-4 text-sm font-medium">$@contact.DealValue.ToString("N0")</td>
+                            <td class="p-4">
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]" @onclick="() => ShowEditModal(contact)">Editar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </Card>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        @foreach (var stage in pipelineStages)
+        {
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-sm">@stage</h3>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]">
+                        @deals.Count(d => d.Stage == stage)
+                    </span>
+                </div>
+                <div class="space-y-3">
+                    @foreach (var deal in deals.Where(d => d.Stage == stage))
+                    {
+                        <div class="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 cursor-pointer hover:border-[var(--primary)]" @onclick="() => MoveDeal(deal)">
+                            <p class="font-medium text-sm mb-1">@deal.Name</p>
+                            <p class="text-lg font-bold mb-2">$@deal.Value.ToString("N0")</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-[var(--muted-foreground)]">@deal.Company</span>
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style="background-color: @deal.ContactColor">
+                                    @string.Concat(deal.ContactName.Split(' ').Select(n => n[0].ToString()))
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@if (showModal)
+{
+    <Modal IsOpen="true" OnClose="CloseModal">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4">@(editingContact == null ? "Adicionar Contato" : "Editar Contato")</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newName" placeholder="Nome completo" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Empresa</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newCompany" placeholder="Nome da empresa" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input type="email" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newEmail" placeholder="email@exemplo.com" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Status</label>
+                        <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newStatus">
+                            <option value="Active">Ativo</option>
+                            <option value="Lead">Lead</option>
+                            <option value="Customer">Cliente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Valor do Negócio</label>
+                        <input type="number" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="newDealValue" placeholder="0" />
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                @if (editingContact != null)
+                {
+                    <button class="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600" @onclick="DeleteContact">Excluir</button>
+                }
+                <button class="px-4 py-2 text-sm rounded-lg border border-[var(--border)] hover:bg-[var(--secondary)]" @onclick="CloseModal">Cancelar</button>
+                <button class="px-4 py-2 text-sm rounded-lg bg-[var(--primary)] text-white hover:opacity-90" @onclick="SaveContact">Salvar</button>
+            </div>
+        </div>
+    </Modal>
+}
+@code {
+    private string activeTab = "contacts";
+    private bool showModal = false;
+    private CrmContact? editingContact = null;
+    private string newName = "";
+    private string newCompany = "";
+    private string newEmail = "";
+    private string newStatus = "Active";
+    private decimal newDealValue = 0;
+
+    private string[] pipelineStages = new[] { "Lead", "Qualified", "Proposal", "Negotiation", "Closed Won" };
+
+    private string[] contactColors = new[] { "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899" };
+
+    private List<CrmContact> contacts = new()
+    {
+        new(1, "John Smith", "Acme Corp", "john@acme.com", "Active", 15000, "#3b82f6"),
+        new(2, "Sarah Johnson", "TechStart", "sarah@techstart.com", "Customer", 25000, "#10b981"),
+        new(3, "Mike Wilson", "Global Inc", "mike@global.com", "Lead", 8000, "#f59e0b"),
+        new(4, "Emily Davis", "Creative Co", "emily@creative.com", "Active", 12000, "#8b5cf6"),
+        new(5, "Chris Brown", "Future Labs", "chris@future.com", "Customer", 35000, "#ec4899")
+    };
+
+    private List<CrmDeal> deals = new()
+    {
+        new(1, "Enterprise License", "Acme Corp", "Qualified", 50000, "John Smith", "#3b82f6"),
+        new(2, "Consulting Package", "TechStart", "Proposal", 25000, "Sarah Johnson", "#10b981"),
+        new(3, "Annual Subscription", "Global Inc", "Lead", 12000, "Mike Wilson", "#f59e0b"),
+        new(4, "Custom Development", "Creative Co", "Negotiation", 80000, "Emily Davis", "#8b5cf6"),
+        new(5, "Support Contract", "Future Labs", "Closed Won", 15000, "Chris Brown", "#ec4899")
+    };
+
+    private void SetContactsTab() { activeTab = "contacts"; }
+    private void SetPipelineTab() { activeTab = "pipeline"; }
+
+    private void ShowAddModal()
+    {
+        editingContact = null;
+        newName = "";
+        newCompany = "";
+        newEmail = "";
+        newStatus = "Active";
+        newDealValue = 0;
+        showModal = true;
+    }
+
+    private void ShowEditModal(CrmContact contact)
+    {
+        editingContact = contact;
+        newName = contact.Name;
+        newCompany = contact.Company;
+        newEmail = contact.Email;
+        newStatus = contact.Status;
+        newDealValue = contact.DealValue;
+        showModal = true;
+    }
+
+    private void CloseModal() { showModal = false; editingContact = null; }
+
+    private void SaveContact()
+    {
+        if (string.IsNullOrWhiteSpace(newName)) return;
+
+        var statusColor = newStatus switch
+        {
+            "Active" => "#10b981",
+            "Lead" => "#f59e0b",
+            "Customer" => "#3b82f6",
+            _ => "#6b7280"
+        };
+
+        if (editingContact == null)
+        {
+            var color = contactColors[contacts.Count % contactColors.Length];
+            contacts.Add(new CrmContact(contacts.Count + 1, newName, newCompany, newEmail, newStatus, newDealValue, color));
+        }
+        else
+        {
+            editingContact.Name = newName;
+            editingContact.Company = newCompany;
+            editingContact.Email = newEmail;
+            editingContact.Status = newStatus;
+            editingContact.StatusColor = statusColor;
+            editingContact.DealValue = newDealValue;
+        }
+        CloseModal();
+    }
+
+    private void DeleteContact()
+    {
+        if (editingContact != null)
+        {
+            contacts.Remove(editingContact);
+            CloseModal();
+        }
+    }
+
+    private void MoveDeal(CrmDeal deal)
+    {
+        var currentIndex = Array.IndexOf(pipelineStages, deal.Stage);
+        if (currentIndex < pipelineStages.Length - 1)
+            deal.Stage = pipelineStages[currentIndex + 1];
+    }
+
+    public class CrmContact
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Company { get; set; }
+        public string Email { get; set; }
+        public string Status { get; set; }
+        public decimal DealValue { get; set; }
+        public string Color { get; set; }
+        public string StatusColor { get; set; }
+
+        public CrmContact(int id, string name, string company, string email, string status, decimal dealValue, string color)
+        {
+            Id = id; Name = name; Company = company; Email = email; Status = status; DealValue = dealValue; Color = color;
+            StatusColor = status switch { "Active" => "#10b981", "Lead" => "#f59e0b", "Customer" => "#3b82f6", _ => "#6b7280" };
+        }
+    }
+
+    public class CrmDeal
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Company { get; set; }
+        public string Stage { get; set; }
+        public decimal Value { get; set; }
+        public string ContactName { get; set; }
+        public string ContactColor { get; set; }
+
+        public CrmDeal(int id, string name, string company, string stage, decimal value, string contactName, string contactColor)
+        {
+            Id = id; Name = name; Company = company; Stage = stage; Value = value; ContactName = contactName; ContactColor = contactColor;
+        }
+    }
+}

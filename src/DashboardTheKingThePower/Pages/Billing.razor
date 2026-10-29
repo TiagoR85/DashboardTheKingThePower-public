@@ -1,0 +1,320 @@
+﻿@page "/billing"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>CobranÃ§a</PageTitle>
+
+@if (_showToast)
+{
+    <div class="fixed top-4 right-4 z-[110] max-w-sm w-full pointer-events-none">
+        <div class="pointer-events-auto flex items-center gap-3 p-4 rounded-lg border shadow-lg @(_toastType == "success" ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" : "bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800")">
+            <span class="text-sm font-medium @(_toastType == "success" ? "text-green-700 dark:text-green-300" : "text-blue-700 dark:text-blue-300")">@_toastMessage</span>
+        </div>
+    </div>
+}
+
+@if (_showViewModal && _viewInvoice != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50" @onclick="() => _showViewModal = false"></div>
+        <div class="relative bg-[var(--background)] border border-[var(--border)] rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <h3 class="text-lg font-semibold mb-4">Detalhes da Fatura</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">Fatura #</span><span class="font-medium">@_viewInvoice.Number</span></div>
+                <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">Cliente</span><span class="font-medium">@_viewInvoice.Client</span></div>
+                <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">Valor</span><span class="font-medium">$@_viewInvoice.Amount.ToString("N2")</span></div>
+                <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">Data</span><span class="font-medium">@_viewInvoice.Date</span></div>
+                <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">Vencimento</span><span class="font-medium">@_viewInvoice.DueDate</span></div>
+                <div class="flex justify-between"><span class="text-[var(--muted-foreground)]">Status</span><span class="font-medium">@GetStatusLabel(_viewInvoice.Status)</span></div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <Button Variant="secondary" OnClick="() => _showViewModal = false">Fechar</Button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-2xl font-bold">CobranÃ§a</h1>
+        <p class="text-sm text-[var(--muted-foreground)] mt-1">Gerencie faturas e pagamentos</p>
+    </div>
+    <Button OnClick="CreateInvoice">+ Criar Fatura</Button>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Total Faturado</p>
+            <p class="text-2xl font-bold mt-1">R$ 124.850</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Recebido</p>
+            <p class="text-2xl font-bold mt-1 text-green-500">R$ 98.240</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Pendente</p>
+            <p class="text-2xl font-bold mt-1 text-yellow-500">R$ 18.310</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Vencido</p>
+            <p class="text-2xl font-bold mt-1 text-red-500">R$ 8.300</p>
+        </div>
+    </Card>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="lg:col-span-2">
+        <Card>
+            <Header>
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold">HistÃ³rico de CobranÃ§a</h2>
+                    <div class="flex items-center gap-2">
+                        <input class="px-3 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm w-48"
+                               placeholder="Buscar faturas..." @bind="searchTerm" />
+                        <select class="px-3 py-1.5 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm"
+                                @bind="filterStatus">
+                            <option value="all">Todos os Status</option>
+                            <option value="paid">Pago</option>
+                            <option value="pending">Pendente</option>
+                            <option value="overdue">Vencido</option>
+                            <option value="draft">Rascunho</option>
+                        </select>
+                    </div>
+                </div>
+            </Header>
+            <ChildContent>
+                <div class="overflow-x-auto -mx-6 -my-6">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-[var(--border)]">
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">Fatura #</th>
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">Cliente</th>
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">Valor</th>
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">Data</th>
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">Vencimento</th>
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">Status</th>
+                                <th class="text-left p-4 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">AÃ§Ãµes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var invoice in filteredInvoices)
+                            {
+                                <tr class="border-b border-[var(--border)] hover:bg-[var(--muted)] transition-colors">
+                                    <td class="p-4 font-medium text-sm">@invoice.Number</td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                                                 style="background-color: @invoice.Color">
+                                                @invoice.Client.Split(' ').Select(n => n[0].ToString()).Aggregate("", (a, b) => a + b)
+                                            </div>
+                                            <span class="text-sm font-medium">@invoice.Client</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-4 font-medium tabular-nums">$@invoice.Amount.ToString("N2")</td>
+                                    <td class="p-4 text-sm text-[var(--muted-foreground)]">@invoice.Date</td>
+                                    <td class="p-4 text-sm text-[var(--muted-foreground)]">@invoice.DueDate</td>
+                                    <td class="p-4">
+                                        <Badge Variant="@GetBadgeVariant(invoice.Status)">@GetStatusLabel(invoice.Status)</Badge>
+                                    </td>
+                                    <td class="p-4">
+                                        <div class="flex items-center gap-1">
+                                            <button class="text-xs px-2 py-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                                                    @onclick="() => ViewInvoice(invoice)">
+                                                Ver
+                                            </button>
+                                            <button class="text-xs px-2 py-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                                                    @onclick="() => DownloadPdf(invoice)">
+                                                PDF
+                                            </button>
+                                            <button class="text-xs px-2 py-1 rounded text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
+                                                    @onclick="() => SendReminder(invoice)">
+                                                Lembrar
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </ChildContent>
+        </Card>
+    </div>
+
+    <div>
+        <Card Class="mb-6">
+            <Header>
+                <h2 class="text-lg font-semibold">Formas de Pagamento</h2>
+            </Header>
+            <ChildContent>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] hover:bg-[var(--muted)] transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-7 rounded bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+                                <span class="text-white text-[10px] font-bold">VISA</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Visa terminando em 4242</p>
+                                <p class="text-xs text-[var(--muted-foreground)]">Expira em 12/2028</p>
+                            </div>
+                        </div>
+                        <Badge Variant="success">Padrão</Badge>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] hover:bg-[var(--muted)] transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-7 rounded bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center">
+                                <span class="text-white text-[10px] font-bold">MC</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Mastercard terminando em 8888</p>
+                                <p class="text-xs text-[var(--muted-foreground)]">Expira em 06/2027</p>
+                            </div>
+                        </div>
+                        <button class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">Definir como padrão</button>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] hover:bg-[var(--muted)] transition-colors">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-7 rounded bg-gradient-to-br from-cyan-500 to-cyan-700 flex items-center justify-center">
+                                <span class="text-white text-[10px] font-bold">AMEX</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">Amex terminando em 1234</p>
+                                <p class="text-xs text-[var(--muted-foreground)]">Expira em 03/2029</p>
+                            </div>
+                        </div>
+                        <button class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors">Definir como padrão</button>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <Button Variant="secondary" Size="sm">+ Adicionar Forma de Pagamento</Button>
+                </div>
+            </ChildContent>
+        </Card>
+
+        <Card>
+            <Header>
+                <h2 class="text-lg font-semibold">Resumo Rápido</h2>
+            </Header>
+            <ChildContent>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-[var(--muted-foreground)]">Este mês</span>
+                        <span class="text-sm font-medium">R$ 32.450</span>
+                    </div>
+                    <div class="w-full bg-[var(--muted)] rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 78%"></div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-[var(--muted-foreground)]">Taxa de recebimento</span>
+                        <span class="text-sm font-medium">78%</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-[var(--muted-foreground)]">Tempo médio de pagamento</span>
+                        <span class="text-sm font-medium">12 dias</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-[var(--muted-foreground)]">Faturas em aberto</span>
+                        <span class="text-sm font-medium">7</span>
+                    </div>
+                </div>
+            </ChildContent>
+        </Card>
+    </div>
+</div>
+@code {
+    private string searchTerm = "";
+    private string filterStatus = "all";
+    private bool _showToast;
+    private string _toastMessage = "";
+    private string _toastType = "success";
+    private BillingInvoice? _viewInvoice;
+    private bool _showViewModal;
+
+    private List<BillingInvoice> invoices = new()
+    {
+        new("INV-2026-001", "Acme Corporation", "2026-08-01", "2026-08-15", 4250.00m, "Paid", "#10b981"),
+        new("INV-2026-002", "TechStart Inc.", "2026-08-03", "2026-08-17", 2875.50m, "Paid", "#3b82f6"),
+        new("INV-2026-003", "Global Solutions", "2026-08-05", "2026-08-19", 12500.00m, "Paid", "#8b5cf6"),
+        new("INV-2026-004", "Creative Studios", "2026-07-20", "2026-08-03", 3800.00m, "Overdue", "#ef4444"),
+        new("INV-2026-005", "Future Labs", "2026-08-07", "2026-08-21", 1950.75m, "Pending", "#f59e0b"),
+        new("INV-2026-006", "Acme Corporation", "2026-07-15", "2026-07-29", 5600.00m, "Paid", "#10b981"),
+        new("INV-2026-007", "TechStart Inc.", "2026-08-10", "2026-08-24", 4500.00m, "Pending", "#3b82f6"),
+        new("INV-2026-008", "Vertex Digital", "2026-08-12", "2026-08-26", 8200.00m, "Pending", "#ec4899"),
+        new("INV-2026-009", "Global Solutions", "2026-07-28", "2026-08-11", 6400.00m, "Overdue", "#8b5cf6"),
+        new("INV-2026-010", "Apex Partners", "2026-08-14", "2026-09-14", 1825.00m, "Draft", "#6b7280")
+    };
+
+    private IEnumerable<BillingInvoice> filteredInvoices => invoices
+        .Where(i => (filterStatus == "all" || i.Status.ToLower() == filterStatus) &&
+                     (string.IsNullOrEmpty(searchTerm) ||
+                      i.Client.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      i.Number.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Paid" => "Pago",
+        "Pending" => "Pendente",
+        "Overdue" => "Vencido",
+        "Draft" => "Rascunho",
+        _ => status
+    };
+
+    private string GetBadgeVariant(string status) => status switch
+    {
+        "Paid" => "success",
+        "Pending" => "warning",
+        "Overdue" => "error",
+        _ => "default"
+    };
+
+    private void CreateInvoice()
+    {
+        var num = invoices.Count + 1;
+        var newInvoice = new BillingInvoice(
+            $"INV-2026-{num:D3}", "Novo Cliente", "2026-08-15", "2026-08-30",
+            1000.00m, "Draft", "#6b7280");
+        invoices = new List<BillingInvoice> { newInvoice }.Concat(invoices).ToList();
+        ShowToast("Fatura criada com sucesso", "success");
+    }
+
+    private void ViewInvoice(BillingInvoice invoice)
+    {
+        _viewInvoice = invoice;
+        _showViewModal = true;
+    }
+
+    private void DownloadPdf(BillingInvoice invoice)
+    {
+        ShowToast($"Baixando PDF de {invoice.Number}...", "info");
+    }
+
+    private void SendReminder(BillingInvoice invoice)
+    {
+        ShowToast($"Lembrete enviado para {invoice.Client}", "success");
+    }
+
+    private void ShowToast(string message, string type)
+    {
+        _toastMessage = message;
+        _toastType = type;
+        _showToast = true;
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            _showToast = false;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    public record BillingInvoice(string Number, string Client, string Date, string DueDate, decimal Amount, string Status, string Color);
+}

@@ -1,0 +1,102 @@
+@page "/products/{Id}"
+@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Models
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ProductService ProductService
+@inject CartService CartService
+@inject WishlistService WishlistService
+@inject ToastService Toast
+@inject NavigationManager Navigation
+
+<PageTitle>Detalhe do produto</PageTitle>
+
+@if (!_loaded)
+{
+    <div class="flex items-center justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div></div>
+}
+else if (_product == null)
+{
+    <div class="text-center py-16">
+        <p class="text-sm text-[var(--muted-foreground)]">Produto não encontrado.</p>
+        <div class="mt-4">
+            <Button Variant="secondary" OnClick='() => Navigation.NavigateTo("products")'>Voltar aos produtos</Button>
+        </div>
+    </div>
+}
+else
+{
+    <nav class="text-sm text-[var(--muted-foreground)] mb-6">
+        <a href="" class="hover:text-[var(--foreground)]">Início</a> <span class="mx-1">/</span>
+        <a href="products" class="hover:text-[var(--foreground)]">Produtos</a> <span class="mx-1">/</span>
+        <span class="text-[var(--foreground)]">@_product.Name</span>
+    </nav>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl">
+        <div class="aspect-square rounded-lg bg-[var(--secondary)] flex items-center justify-center text-8xl">🛍️</div>
+
+        <div>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-[var(--secondary)]">@_product.Category</span>
+            <h1 class="text-2xl font-bold mt-3">@_product.Name</h1>
+            <p class="text-3xl font-bold mt-4">R$ @_product.Price.ToString("N2")</p>
+            <p class="text-sm mt-2 @(_product.Stock > 0 ? "text-green-600" : "text-red-500")">
+                @(_product.Stock > 0 ? $"{_product.Stock} unidades em estoque" : "Fora de estoque")
+            </p>
+
+            <div class="mt-6 space-y-2 text-sm text-[var(--muted-foreground)]">
+                <p><strong class="text-[var(--foreground)]">Código:</strong> @_product.Id</p>
+                <p><strong class="text-[var(--foreground)]">Envio:</strong> em até 2 dias úteis</p>
+            </div>
+
+            <div class="flex flex-wrap gap-3 mt-8">
+                <Button OnClick="AddToCart" Disabled="@(_product.Stock == 0)">Adicionar ao carrinho</Button>
+                <Button Variant="secondary" OnClick="AddToWishlist">♡ Favoritos</Button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    private Product? _product;
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var products = await ProductService.GetAsync();
+        _product = ProductService.Find(products, Id);
+        _loaded = true;
+    }
+
+    private async Task AddToCart()
+    {
+        if (_product == null) return;
+        var cart = await CartService.GetAsync();
+        CartService.Add(cart, new CartItem
+        {
+            ProductId = _product.Id,
+            Name = _product.Name,
+            Category = _product.Category,
+            Price = _product.Price,
+            Qty = 1
+        });
+        await CartService.SaveAsync(cart);
+        Toast.ShowSuccess($"“{_product.Name}” foi para o carrinho.");
+    }
+
+    private async Task AddToWishlist()
+    {
+        if (_product == null) return;
+        var list = await WishlistService.GetAsync();
+        var added = WishlistService.Add(list, new WishlistItem
+        {
+            ProductId = _product.Id,
+            Name = _product.Name,
+            Category = _product.Category,
+            Price = _product.Price
+        });
+        if (added) await WishlistService.SaveAsync(list);
+        Toast.ShowSuccess(added ? "Adicionado aos favoritos." : "Esse item já está nos seus favoritos.");
+    }
+}

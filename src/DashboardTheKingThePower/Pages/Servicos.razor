@@ -1,0 +1,373 @@
+@page "/servicos"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Serviços</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Serviços</h1>
+    <Button OnClick="ShowCreateModal">+ Novo Serviço</Button>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Total de Serviços</p>
+            <p class="text-2xl font-bold mt-1">@services.Count</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Ativos</p>
+            <p class="text-2xl font-bold mt-1 text-green-500">@services.Count(s => s.Status == "Active")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Preço Médio</p>
+            <p class="text-2xl font-bold mt-1">R$ @services.Average(s => s.Price).ToString("N0")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Categoria Mais Popular</p>
+            <p class="text-2xl font-bold mt-1">@GetCategoryLabel(services.GroupBy(s => s.Category).OrderByDescending(g => g.Count()).First().Key)</p>
+        </div>
+    </Card>
+</div>
+
+<Card>
+    <div class="p-4 border-b border-[var(--border)] flex flex-col md:flex-row items-start md:items-center gap-4">
+        <input class="flex-1 w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="Buscar serviços..." @bind="searchTerm" />
+        <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="filterCategory">
+            <option value="all">Todas as Categorias</option>
+            <option value="Web Development">Desenvolvimento Web</option>
+            <option value="Consulting">Consultoria</option>
+            <option value="Design">Design</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Support">Suporte</option>
+            <option value="Training">Treinamento</option>
+        </select>
+        <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="filterStatus">
+            <option value="all">Todos os Status</option>
+            <option value="Active">Ativo</option>
+            <option value="Inactive">Inativo</option>
+            <option value="Draft">Rascunho</option>
+        </select>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-[var(--border)]">
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">ID</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Nome</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Descrição</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Preço</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Duração</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Categoria</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Status</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var service in filteredServices)
+                {
+                    @if (editingServiceId == service.Id)
+                    {
+                        <tr class="border-b border-[var(--border)] bg-[var(--muted)]">
+                            <td class="p-4 font-medium">@service.Id</td>
+                            <td class="p-4">
+                                <input class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editModel.Name" />
+                            </td>
+                            <td class="p-4">
+                                <input class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editModel.Description" />
+                            </td>
+                            <td class="p-4">
+                                <input type="number" class="w-24 px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editModel.Price" />
+                            </td>
+                            <td class="p-4">
+                                <input class="w-20 px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editModel.Duration" />
+                            </td>
+                            <td class="p-4">
+                                <select class="px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editModel.Category">
+                                    <option value="Web Development">Desenvolvimento Web</option>
+                                    <option value="Consulting">Consultoria</option>
+                                    <option value="Design">Design</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Support">Suporte</option>
+                                    <option value="Training">Treinamento</option>
+                                </select>
+                            </td>
+                            <td class="p-4">
+                                <select class="px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editModel.Status">
+                                    <option value="Active">Ativo</option>
+                                    <option value="Inactive">Inativo</option>
+                                    <option value="Draft">Rascunho</option>
+                                </select>
+                            </td>
+                            <td class="p-4">
+                                <button class="text-green-500 hover:text-green-600 mr-2" @onclick="SaveEdit">Salvar</button>
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]" @onclick="CancelEdit">Cancelar</button>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr class="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                            <td class="p-4 font-medium">@service.Id</td>
+                            <td class="p-4">@service.Name</td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)] max-w-xs truncate">@service.Description</td>
+                            <td class="p-4 font-medium">R$ @service.Price.ToString("N0")</td>
+                            <td class="p-4 text-sm">@service.Duration</td>
+                            <td class="p-4">
+                                <span class="text-xs px-2 py-1 rounded-full bg-[var(--muted)]">@GetCategoryLabel(service.Category)</span>
+                            </td>
+                            <td class="p-4">
+                                @if (service.Status == "Active")
+                                {
+                                    <span class="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-500">@GetStatusLabel(service.Status)</span>
+                                }
+                                else if (service.Status == "Inactive")
+                                {
+                                    <span class="text-xs px-2 py-1 rounded-full bg-gray-500/20 text-gray-500">@GetStatusLabel(service.Status)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-500">@GetStatusLabel(service.Status)</span>
+                                }
+                            </td>
+                            <td class="p-4">
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)] mr-2" @onclick="() => StartEdit(service)">Editar</button>
+                                <button class="text-red-500 hover:text-red-600" @onclick="() => ShowDeleteConfirm(service.Id)">Excluir</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</Card>
+
+@if (showDeleteModal)
+{
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-[var(--background)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-2">Excluir Serviço</h3>
+            <p class="text-sm text-[var(--muted-foreground)] mb-6">Tem certeza que deseja excluir este serviço? Esta ação não pode ser desfeita.</p>
+            <div class="flex justify-end gap-3">
+                <Button Variant="secondary" OnClick="CancelDelete">Cancelar</Button>
+                <Button OnClick="ConfirmDelete">Excluir</Button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCreateModal)
+{
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-[var(--background)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-4">Novo Serviço</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newService.Name" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Descrição</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newService.Description" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Preço (R$)</label>
+                        <input type="number" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newService.Price" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Duração</label>
+                        <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="ex.: 2h 30min" @bind="newService.Duration" />
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Categoria</label>
+                        <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newService.Category">
+                            <option value="Web Development">Desenvolvimento Web</option>
+                            <option value="Consulting">Consultoria</option>
+                            <option value="Design">Design</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Support">Suporte</option>
+                            <option value="Training">Treinamento</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Status</label>
+                        <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newService.Status">
+                            <option value="Active">Ativo</option>
+                            <option value="Inactive">Inativo</option>
+                            <option value="Draft">Rascunho</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <Button Variant="secondary" OnClick="CancelCreate">Cancelar</Button>
+                <Button OnClick="ConfirmCreate">Criar</Button>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    private string searchTerm = "";
+    private string filterCategory = "all";
+    private string filterStatus = "all";
+
+    private int? editingServiceId = null;
+    private ServiceEditModel editModel = new();
+
+    private bool showDeleteModal = false;
+    private int? deleteTargetId = null;
+
+    private bool showCreateModal = false;
+    private ServiceEditModel newService = new() { Category = "Web Development", Status = "Active" };
+
+    private List<Service> services = new()
+    {
+        new(1, "Desenvolvimento Web", "Desenvolvimento completo de aplicações web", 5000, "2h", "Web Development", "Active"),
+        new(2, "UI/UX Design", "Design de interface e experiência do usuário", 3500, "1h 30m", "Design", "Active"),
+        new(3, "Consultoria Empresarial", "Análise e planejamento estratégico de negócios", 2500, "1h", "Consulting", "Active"),
+        new(4, "Marketing Digital", "Campanhas de SEO, PPC e redes sociais", 1800, "30 min", "Marketing", "Active"),
+        new(5, "Suporte Técnico", "Suporte técnico 24/7 e resolução de problemas", 500, "45 min", "Support", "Active"),
+        new(6, "Treinamento de Equipes", "Sessões de treinamento personalizadas para equipes", 1200, "2h 30m", "Training", "Draft"),
+        new(7, "Desenvolvimento de Aplicativos", "Desenvolvimento de aplicativos móveis multiplataforma", 8000, "3h", "Web Development", "Active"),
+        new(8, "Identidade Visual", "Criação de logotipo e manual de marca", 2200, "1h 30m", "Design", "Inactive"),
+        new(9, "Análise de Dados", "Configuração de BI e relatórios", 4500, "2h", "Consulting", "Active"),
+        new(10, "Migração para Nuvem", "Migração de infraestrutura para a nuvem", 7500, "4h", "Web Development", "Draft")
+    };
+
+    private string GetCategoryLabel(string category) => category switch
+    {
+        "Web Development" => "Desenvolvimento Web",
+        "Consulting" => "Consultoria",
+        "Design" => "Design",
+        "Marketing" => "Marketing",
+        "Support" => "Suporte",
+        "Training" => "Treinamento",
+        _ => category
+    };
+
+    // exibição apenas: os valores do dado seguem em inglês nas comparações
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Active" => "Ativo",
+        "Inactive" => "Inativo",
+        "Draft" => "Rascunho",
+        _ => status
+    };
+
+    private IEnumerable<Service> filteredServices => services
+        .Where(s => (filterCategory == "all" || s.Category == filterCategory) &&
+                     (filterStatus == "all" || s.Status == filterStatus) &&
+                     (string.IsNullOrEmpty(searchTerm) ||
+                      s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      s.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      s.Id.ToString().Contains(searchTerm)));
+
+    private void StartEdit(Service service)
+    {
+        editingServiceId = service.Id;
+        editModel = new ServiceEditModel
+        {
+            Name = service.Name,
+            Description = service.Description,
+            Price = service.Price,
+            Duration = service.Duration,
+            Category = service.Category,
+            Status = service.Status
+        };
+    }
+
+    private void SaveEdit()
+    {
+        if (editingServiceId == null) return;
+        var index = services.FindIndex(s => s.Id == editingServiceId);
+        if (index >= 0)
+        {
+            services[index] = services[index] with
+            {
+                Name = editModel.Name,
+                Description = editModel.Description,
+                Price = editModel.Price,
+                Duration = editModel.Duration,
+                Category = editModel.Category,
+                Status = editModel.Status
+            };
+        }
+        editingServiceId = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingServiceId = null;
+    }
+
+    private void ShowDeleteConfirm(int id)
+    {
+        deleteTargetId = id;
+        showDeleteModal = true;
+    }
+
+    private void ConfirmDelete()
+    {
+        if (deleteTargetId != null)
+        {
+            services.RemoveAll(s => s.Id == deleteTargetId);
+        }
+        showDeleteModal = false;
+        deleteTargetId = null;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        deleteTargetId = null;
+    }
+
+    private void ShowCreateModal()
+    {
+        newService = new ServiceEditModel { Category = "Web Development", Status = "Active" };
+        showCreateModal = true;
+    }
+
+    private void ConfirmCreate()
+    {
+        var nextId = services.Any() ? services.Max(s => s.Id) + 1 : 1;
+        services.Add(new Service
+        (
+            nextId,
+            newService.Name,
+            newService.Description,
+            newService.Price,
+            newService.Duration,
+            newService.Category,
+            newService.Status
+        ));
+        showCreateModal = false;
+    }
+
+    private void CancelCreate()
+    {
+        showCreateModal = false;
+    }
+
+    public record Service(int Id, string Name, string Description, decimal Price, string Duration, string Category, string Status);
+
+    public class ServiceEditModel
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Price { get; set; }
+        public string Duration { get; set; } = "";
+        public string Category { get; set; } = "Web Development";
+        public string Status { get; set; } = "Active";
+    }
+}

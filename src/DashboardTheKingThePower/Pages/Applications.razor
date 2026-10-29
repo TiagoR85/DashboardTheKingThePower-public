@@ -1,0 +1,281 @@
+﻿@page "/applications"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Aplicações</PageTitle>
+
+@if (_showMessage)
+{
+    <div class="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-y-0 opacity-100" id="toast-banner">
+        <div class="flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            <span>@_messageText</span>
+        </div>
+    </div>
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Aplicações</h1>
+    <Button OnClick="@(() => InstallApp())">+ Instalar App</Button>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <Card>
+        <div class="p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Total de Apps</p>
+                    <p class="text-2xl font-bold mt-1">@applications.Count</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Ativo</p>
+                    <p class="text-2xl font-bold mt-1 text-green-500">@applications.Count(a => a.Status == "Active")</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-[var(--muted-foreground)]">Atualizações Disponíveis</p>
+                    <p class="text-2xl font-bold mt-1 text-yellow-500">@applications.Count(a => a.Status == "Update Available")</p>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </div>
+            </div>
+        </div>
+    </Card>
+</div>
+
+<Card>
+    <div class="p-4 border-b border-[var(--border)] flex flex-wrap items-center gap-4">
+        <div class="relative flex-1 min-w-[200px]">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input class="w-full pl-10 pr-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="Buscar aplicações..." @bind="searchTerm" />
+        </div>
+        <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="filterCategory">
+            <option value="all">Todas as Categorias</option>
+            <option value="Productivity">Produtividade</option>
+            <option value="Communication">Comunicação</option>
+            <option value="Analytics">Análises</option>
+            <option value="Security">Segurança</option>
+            <option value="Development">Desenvolvimento</option>
+            <option value="Finance">Finanças</option>
+            <option value="Marketing">Marketing</option>
+        </select>
+        <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="filterStatus">
+            <option value="all">Todos os Status</option>
+            <option value="Active">Ativo</option>
+            <option value="Inactive">Inativo</option>
+            <option value="Update Available">Atualização Disponível</option>
+        </select>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        @foreach (var app in filteredApplications)
+        {
+            <div class="group relative border border-[var(--border)] rounded-xl bg-[var(--background)] p-5 transition-all duration-200 hover:shadow-lg hover:shadow-black/5 hover:border-[var(--primary)]/30 hover:-translate-y-0.5">
+                <div class="flex items-start gap-4 mb-3">
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0" style="background-color: @app.IconColor;">
+                        @((MarkupString)app.Icon)
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-semibold truncate">@app.Name</h3>
+                            <Badge Variant="@GetStatusVariant(app.Status)">@app.Status</Badge>
+                        </div>
+                        <p class="text-sm text-[var(--muted-foreground)] line-clamp-2">@app.Description</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4 text-xs text-[var(--muted-foreground)] mb-4">
+                    <span class="flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                        @app.Category
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        v@app.Version
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        @app.LastUpdated
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2 pt-3 border-t border-[var(--border)]">
+                    <Button Variant="ghost" Size="sm" OnClick="@(() => OpenApp(app))">Abrir</Button>
+                    <Button Variant="ghost" Size="sm" OnClick="@(() => OpenSettings(app))">Configurações</Button>
+                    <div class="flex-1"></div>
+                    <button class="text-xs text-red-500 hover:text-red-700 transition-colors" @onclick="() => UninstallApp(app)">Desinstalar</button>
+                </div>
+            </div>
+        }
+    </div>
+    @if (!filteredApplications.Any())
+    {
+        <div class="p-12 text-center">
+            <svg class="w-12 h-12 mx-auto text-[var(--muted-foreground)] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <p class="text-[var(--muted-foreground)]">Nenhuma aplicação encontrada com os critérios informados.</p>
+        </div>
+    }
+</Card>
+
+@if (showUninstallModal)
+{
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-[var(--background)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold mb-2">Desinstalar Aplicação</h3>
+            <p class="text-[var(--muted-foreground)] mb-6">Tem certeza de que deseja desinstalar <strong>@uninstallTarget?.Name</strong>? Isso removerá todos os dados e configurações associados.</p>
+            <div class="flex justify-end gap-2">
+                <Button Variant="secondary" OnClick="@(() => { showUninstallModal = false; uninstallTarget = null; })">Cancelar</Button>
+                <button class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium" @onclick="ConfirmUninstall">Desinstalar</button>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    private string searchTerm = "";
+    private string filterCategory = "all";
+    private string filterStatus = "all";
+    private bool showUninstallModal;
+    private Application? uninstallTarget;
+    private bool _showMessage;
+    private string _messageText = "";
+    private System.Timers.Timer? _hideTimer;
+
+    private List<Application> applications = new()
+    {
+        new("slack", "Slack", "Hub de comunicação e colaboração em equipe", "4.38.0", "Active", "Communication", "#4A154B", "há 2 dias",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.27 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.163 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.163 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.163 24a2.527 2.527 0 0 1-2.52-2.522v-2.522zm0-1.27a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.315A2.527 2.527 0 0 1 24 15.163a2.528 2.528 0 0 1-2.522 2.523h-6.315z'/></svg>"),
+
+        new("ga", "Google Analytics", "Acompanhe e analise o tráfego do site e o comportamento dos usuários", "4.1.2", "Update Available", "Analytics", "#E37400", "há 5 dias",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm4.95 17.55h-2.4v-2.4h2.4v2.4zm0-4.8h-2.4V7.2h2.4v5.55zM9.6 17.55H7.2v-7.2h2.4v7.2zm0-9.6H7.2V4.8h2.4v3.15zm4.8 9.6h-2.4V12h2.4v5.55z'/></svg>"),
+
+        new("stripe", "Stripe", "Plataforma de processamento de pagamentos para negócios online", "7.84.0", "Active", "Finance", "#635BFF", "há 1 dia",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z'/></svg>"),
+
+        new("auth0", "Auth0", "Plataforma de identidade e gerenciamento de acesso", "3.21.0", "Active", "Security", "#EB5424", "há 3 dias",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M21.858 7.824a10.322 10.322 0 0 0-.424-1.853 10.25 10.25 0 0 0-1.504-2.832A10.31 10.31 0 0 0 17.1.74 10.37 10.37 0 0 0 15.254.17a10.39 10.39 0 0 0-2.172.004c-.673.065-1.34.195-1.984.387L12 0l.928.561a10.27 10.27 0 0 0-1.984.387 10.39 10.39 0 0 0-2.172-.004 10.37 10.37 0 0 0-1.846.57A10.31 10.31 0 0 0 4.07 3.139a10.25 10.25 0 0 0-1.504 2.832 10.322 10.322 0 0 0-.424 1.853L0 12l2.142 4.176a10.322 10.322 0 0 0 .424 1.853 10.25 10.25 0 0 0 1.504 2.832 10.31 10.31 0 0 0 2.83 1.999 10.37 10.37 0 0 0 1.846.57c.72.084 1.446.084 2.172.004a10.27 10.27 0 0 0 1.984-.387L12 24l-.928-.561c.644.192 1.311.322 1.984.387a10.39 10.39 0 0 0 2.172.004 10.37 10.37 0 0 0 1.846-.57 10.31 10.31 0 0 0 2.83-1.999 10.25 10.25 0 0 0 1.504-2.832 10.322 10.322 0 0 0 .424-1.853L24 12l-2.142-4.176zM12 16.238a4.244 4.244 0 1 1 0-8.488 4.244 4.244 0 0 1 0 8.488z'/></svg>"),
+
+        new("sendgrid", "SendGrid", "Serviço de entrega de email e automação de marketing", "3.15.0", "Update Available", "Marketing", "#1A82E2", "há 1 semana",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M24 22.417H18.473a.816.816 0 0 1-.816-.816V8.654a.816.816 0 0 1 .816-.817H24v14.58zM20.237 5.206a3.266 3.266 0 0 1 0-4.619 3.266 3.266 0 0 1 4.618 0 3.266 3.266 0 0 1 0 4.619 3.266 3.266 0 0 1-4.618 0zM11.09 8.654v12.947a.816.816 0 0 1-.816.816H0V8.654h11.09zM6.327 5.206a3.266 3.266 0 0 1 0-4.619 3.266 3.266 0 0 1 4.618 0 3.266 3.266 0 0 1 0 4.619 3.266 3.266 0 0 1-4.618 0z'/></svg>"),
+
+        new("github", "GitHub", "Plataforma de hospedagem de código com controle de versão", "2.42.1", "Active", "Development", "#24292F", "Hoje",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z'/></svg>"),
+
+        new("jira", "Jira", "Ferramenta de gerenciamento de projetos e acompanhamento de tarefas", "9.12.0", "Active", "Productivity", "#0052CC", "há 4 dias",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M11.395.702a.684.684 0 0 0-.69.238L3.312 9.16a.684.684 0 0 0 .123.854l4.92 3.942a.684.684 0 0 0 .854-.124L17.053 5.04a.684.684 0 0 0 .124-.854l-5.637-3.484zM12.605 23.298a.684.684 0 0 0 .69-.238l7.393-8.22a.684.684 0 0 0-.123-.854l-4.92-3.942a.684.684 0 0 0-.854.124l-7.843 8.02a.684.684 0 0 0-.124.854l5.637 3.484z'/></svg>"),
+
+        new("zoom", "Zoom", "Plataforma de videoconferência e reuniões virtuais", "6.0.2", "Update Available", "Communication", "#2D8CFF", "há 6 dias",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M4.285 5.132a1 1 0 0 1 1.041-.038L12 8.857l6.674-3.763a1 1 0 0 1 1.041.038A1 1 0 0 1 20 6.058v11.884a1 1 0 0 1-1.285.968L12 15.143l-6.715 3.767A1 1 0 0 1 4 17.942V6.058a1 1 0 0 1 .285-.926z'/></svg>"),
+
+        new("notion", "Notion", "Espaço de trabalho completo para notas, documentos e colaboração", "3.5.0", "Active", "Productivity", "#000000", "Ontem",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L18.2 2.16c-.42-.326-.98-.7-2.055-.607l-12.8.934c-.466.047-.56.28-.374.466l1.43 1.196zm.793 3.08v10.504c0 .747.373 1.027 1.214.98l14.525-.84c.841-.046.935-.56.935-1.166V6.354c0-.606-.233-.933-.748-.886l-15.177.887c-.56.046-.747.326-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v12.356c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952l1.449.327s0 .84-1.169.84l-3.222.187c-.093-.187 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279V9.201l-1.168-.14c-.093-.514.28-.886.747-.933l3.27-.187zm-10.13 10.597l4.02-6.203v5.781c0 .327-.186.653-.513.746l-3.506.42c-.28.047-.514-.093-.514-.42l-.006-.324zm1.348-7.078l4.577-7.28v5.782c0 .42-.187.84-.513.933l-4.577.467c-.046.046-.14-.046-.14-.234l-.007-.514-.007-.514-.333-.64z'/></svg>"),
+
+        new("datadog", "Datadog", "Plataforma de monitoramento e observabilidade em nuvem", "2.18.0", "Active", "Analytics", "#632CA6", "há 2 semanas",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M17.498 17.083c1.421-.422 2.62-1.144 3.438-2.127.816.984 2.017 1.706 3.438 2.127a8.74 8.74 0 0 1-3.438 2.127c-.816-.984-2.017-1.706-3.438-2.127zM17.498 8.917c1.421-.422 2.62-1.144 3.438-2.127.816.984 2.017 1.706 3.438 2.127a8.74 8.74 0 0 1-3.438 2.127c-.816-.984-2.017-1.706-3.438-2.127zM6.502 17.083c-1.421-.422-2.62-1.144-3.438-2.127-.816.984-2.017 1.706-3.438 2.127a8.74 8.74 0 0 0 3.438 2.127c.816-.984 2.017-1.706 3.438-2.127zM6.502 8.917c-1.421-.422-2.62-1.144-3.438-2.127C2.248 7.774 1.047 8.496-.391 8.917a8.74 8.74 0 0 0 3.438 2.127c.816-.984 2.017-1.706 3.438-2.127zM12 22.833c3.625 0 6.563-2.938 6.563-6.563S15.625 9.707 12 9.707 5.437 12.645 5.437 16.27 8.375 22.833 12 22.833z'/></svg>"),
+
+        new("1password", "1Password", "Gerenciador de senhas e cofre de segurança", "8.10.28", "Inactive", "Security", "#0572EC", "há 3 semanas",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.8 17.4a2.4 2.4 0 0 1-2.4-2.4V9a2.4 2.4 0 0 1 4.8 0v6a2.4 2.4 0 0 1-2.4 2.4zm3.6 0a2.4 2.4 0 0 1-2.4-2.4V9a2.4 2.4 0 0 1 4.8 0v6a2.4 2.4 0 0 1-2.4 2.4z'/></svg>")
+    };
+
+    private IEnumerable<Application> filteredApplications => applications
+        .Where(a =>
+            (filterCategory == "all" || a.Category == filterCategory) &&
+            (filterStatus == "all" || a.Status == filterStatus) &&
+            (string.IsNullOrEmpty(searchTerm) ||
+                a.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                a.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+
+    private string GetStatusVariant(string status) => status switch
+    {
+        "Active" => "success",
+        "Inactive" => "default",
+        "Update Available" => "warning",
+        _ => "default"
+    };
+
+    private void UninstallApp(Application app)
+    {
+        uninstallTarget = app;
+        showUninstallModal = true;
+    }
+
+    private void ConfirmUninstall()
+    {
+        if (uninstallTarget is not null)
+        {
+            applications.RemoveAll(a => a.Id == uninstallTarget.Id);
+        }
+        showUninstallModal = false;
+        uninstallTarget = null;
+    }
+
+    private void InstallApp()
+    {
+        var newApp = new Application(
+            $"new-{DateTime.Now.Ticks}",
+            $"Novo App {applications.Count + 1}",
+            "Um aplicativo recém-instalado",
+            "1.0.0",
+            "Active",
+            "Productivity",
+            "#6366F1",
+            "Agora mesmo",
+            "<svg class='w-6 h-6' fill='currentColor' viewBox='0 0 24 24'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>"
+        );
+        applications.Add(newApp);
+        ShowMessage($"Instalando {newApp.Name}...");
+    }
+
+    private void OpenApp(Application app)
+    {
+        ShowMessage($"Abrindo {app.Name}...");
+    }
+
+    private void OpenSettings(Application app)
+    {
+        ShowMessage($"Abrindo configurações de {app.Name}...");
+    }
+
+    private void ShowMessage(string message)
+    {
+        _messageText = message;
+        _showMessage = true;
+        StateHasChanged();
+
+        _hideTimer?.Dispose();
+        _hideTimer = new System.Timers.Timer(3000);
+        _hideTimer.Elapsed += (sender, args) =>
+        {
+            _showMessage = false;
+            _hideTimer?.Dispose();
+            _hideTimer = null;
+            InvokeAsync(StateHasChanged);
+        };
+        _hideTimer.AutoReset = false;
+        _hideTimer.Start();
+    }
+
+    public void Dispose()
+    {
+        _hideTimer?.Dispose();
+    }
+
+    public record Application(string Id, string Name, string Description, string Version, string Status, string Category, string IconColor, string LastUpdated, string Icon);
+}

@@ -1,0 +1,17 @@
+<span class="@($"inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {VariantClass}")">
+    @ChildContent
+</span>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Variant { get; set; } = "default";
+    
+    private string VariantClass => Variant switch
+    {
+        "default" => "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
+        "success" => "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+        "warning" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+        "error" => "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+        _ => "bg-[var(--secondary)] text-[var(--secondary-foreground)]"
+    };
+}

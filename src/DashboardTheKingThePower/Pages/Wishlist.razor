@@ -1,0 +1,89 @@
+@page "/wishlist"
+@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Models
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject WishlistService WishlistService
+@inject CartService CartService
+@inject ToastService Toast
+
+<PageTitle>Favoritos</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Favoritos</h1>
+    @* Anti-flash: contador só após o load (antes: piscava "0 itens"). *@
+    <span class="text-sm text-[var(--muted-foreground)]">@(_loaded ? $"{items.Count} itens" : "…")</span>
+</div>
+
+@if (!_loaded)
+{
+    <div class="flex items-center justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div></div>
+}
+else if (items.Count == 0)
+{
+    <Card>
+        <div class="text-center py-12">
+            <p class="text-sm text-[var(--muted-foreground)]">Sua lista de favoritos está vazia.</p>
+            <p class="text-sm text-[var(--muted-foreground)] mt-1">Explore os produtos e use “Favoritos” para salvar.</p>
+        </div>
+    </Card>
+}
+else
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach (var item in items)
+        {
+            <Card>
+                <ChildContent>
+                    <div class="flex items-start justify-between">
+                        <div class="w-12 h-12 rounded-lg bg-[var(--secondary)] flex items-center justify-center text-xl">🛍️</div>
+                        <button class="text-red-500 hover:text-red-600 text-lg" title="Remover" aria-label="Remover da lista de desejos" @onclick="() => Remove(item)">♥</button>
+                    </div>
+                    <h3 class="font-medium mt-3">@item.Name</h3>
+                    <p class="text-xs text-[var(--muted-foreground)]">@item.Category</p>
+                    <p class="font-bold mt-2">R$ @item.Price.ToString("N2")</p>
+                    <div class="mt-4">
+                        <Button Variant="secondary" Size="sm" OnClick="() => MoveToCart(item)">Mover para o carrinho</Button>
+                    </div>
+                </ChildContent>
+            </Card>
+        }
+    </div>
+}
+
+@code {
+    private List<WishlistItem> items = new();
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = await WishlistService.GetAsync();
+        _loaded = true;
+    }
+
+    private async Task Remove(WishlistItem item)
+    {
+        WishlistService.Remove(items, item.ProductId);
+        await WishlistService.SaveAsync(items);
+        Toast.ShowInfo("Item removido dos favoritos.");
+    }
+
+    private async Task MoveToCart(WishlistItem item)
+    {
+        var cart = await CartService.GetAsync();
+        CartService.Add(cart, new CartItem
+        {
+            ProductId = item.ProductId,
+            Name = item.Name,
+            Category = item.Category,
+            Price = item.Price,
+            Qty = 1
+        });
+        await CartService.SaveAsync(cart);
+
+        WishlistService.Remove(items, item.ProductId);
+        await WishlistService.SaveAsync(items);
+        Toast.ShowSuccess("Item movido para o carrinho.");
+    }
+}

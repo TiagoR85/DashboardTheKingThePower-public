@@ -1,0 +1,47 @@
+@page "/ui/alerts"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Alertas</PageTitle>
+
+<h1 class="text-2xl font-bold mb-1">Alertas</h1>
+<p class="text-sm text-[var(--muted-foreground)] mb-6">Mensagens de feedback para o usuário.</p>
+
+<div class="space-y-3 max-w-3xl">
+    @if (_visible)
+    {
+        <div class="flex items-start justify-between gap-3 border rounded-lg px-4 py-3 bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
+            <p class="text-sm"><strong>Informação.</strong> Você tem 3 novas tarefas aguardando revisão.</p>
+            <button class="font-bold opacity-60 hover:opacity-100" aria-label="Fechar aviso" @onclick="() => _visible = false">×</button>
+        </div>
+    }
+    @if (_success)
+    {
+        <div class="flex items-start justify-between gap-3 border rounded-lg px-4 py-3 bg-green-50 border-green-200 text-green-800 dark:bg-green-950 dark:border-green-800 dark:text-green-300">
+            <p class="text-sm"><strong>Sucesso.</strong> Pedido confirmado e enviado para produção.</p>
+            <button class="font-bold opacity-60 hover:opacity-100" aria-label="Fechar aviso" @onclick="() => _success = false">×</button>
+        </div>
+    }
+    @if (_warning)
+    {
+        <div class="flex items-start justify-between gap-3 border rounded-lg px-4 py-3 bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-300">
+            <p class="text-sm"><strong>Atenção.</strong> Estoque baixo: restam apenas 4 unidades.</p>
+            <button class="font-bold opacity-60 hover:opacity-100" aria-label="Fechar aviso" @onclick="() => _warning = false">×</button>
+        </div>
+    }
+    @if (_error)
+    {
+        <div class="flex items-start justify-between gap-3 border rounded-lg px-4 py-3 bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-800 dark:text-red-300">
+            <p class="text-sm"><strong>Erro.</strong> Não foi possível salvar as alterações. Tente novamente.</p>
+            <button class="font-bold opacity-60 hover:opacity-100" aria-label="Fechar aviso" @onclick="() => _error = false">×</button>
+        </div>
+    }
+</div>
+
+<button class="mt-6 text-sm text-[var(--primary)] hover:underline" @onclick="Reset">Restaurar todos</button>
+
+@code {
+    private bool _visible = true, _success = true, _warning = true, _error = true;
+
+    private void Reset() { _visible = _success = _warning = _error = true; }
+}

@@ -1,0 +1,565 @@
+@page "/forms"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Formulários</PageTitle>
+
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold">Formulários</h1>
+        <p class="text-[var(--muted-foreground)]">Padrões comuns de formulários com exemplos de validação</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        @* ───────── Basic Form ───────── *@
+        <Card>
+            <div class="space-y-4">
+                <div class="mb-2">
+                    <h3 class="font-semibold">Formulário Básico</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Formulário de contato simples com nome, e-mail e mensagem</p>
+                </div>
+                @if (!string.IsNullOrEmpty(_basicSuccess))
+                {
+                    <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">@_basicSuccess</div>
+                }
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome</label>
+                    <input @bind="_basicName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Maria Silva" />
+                    @if (_basicErrors.ContainsKey("Name"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_basicErrors["Name"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">E-mail</label>
+                    <input type="email" @bind="_basicEmail" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="maria@exemplo.com" />
+                    @if (_basicErrors.ContainsKey("Email"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_basicErrors["Email"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Mensagem</label>
+                    <textarea @bind="_basicMessage" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] h-24 resize-none" placeholder="Escreva sua mensagem..."></textarea>
+                    @if (_basicErrors.ContainsKey("Message"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_basicErrors["Message"]</p>
+                    }
+                </div>
+                <div class="flex justify-end">
+                    <Button Variant="primary" OnClick="SubmitBasicForm">Enviar Mensagem</Button>
+                </div>
+            </div>
+        </Card>
+
+        @* ───────── Login Form ───────── *@
+        <Card>
+            <div class="space-y-4">
+                <div class="mb-2">
+                    <h3 class="font-semibold">Formulário de Login</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Formulário de autenticação com opção lembrar de mim</p>
+                </div>
+                @if (!string.IsNullOrEmpty(_loginError))
+                {
+                    <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">@_loginError</div>
+                }
+                @if (!string.IsNullOrEmpty(_loginSuccess))
+                {
+                    <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">@_loginSuccess</div>
+                }
+                <div>
+                    <label class="block text-sm font-medium mb-1">Usuário</label>
+                    <input @bind="_loginUsername" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Digite seu usuário" />
+                    @if (_loginErrors.ContainsKey("Username"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_loginErrors["Username"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha</label>
+                    <input type="password" @bind="_loginPassword" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Digite sua senha" />
+                    @if (_loginErrors.ContainsKey("Password"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_loginErrors["Password"]</p>
+                    }
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" @bind="_loginRemember" id="loginRemember" class="rounded border-[var(--border)]" />
+                    <label for="loginRemember" class="text-sm">Lembrar de mim</label>
+                </div>
+                <div class="flex justify-end">
+                    <Button Variant="primary" OnClick="SubmitLogin">Entrar</Button>
+                </div>
+            </div>
+        </Card>
+
+        @* ───────── Registration Form ───────── *@
+        <Card>
+            <div class="space-y-4">
+                <div class="mb-2">
+                    <h3 class="font-semibold">Formulário de Registro</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Registro de novo usuário com confirmação de senha</p>
+                </div>
+                @if (!string.IsNullOrEmpty(_regError))
+                {
+                    <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">@_regError</div>
+                }
+                @if (!string.IsNullOrEmpty(_regSuccess))
+                {
+                    <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">@_regSuccess</div>
+                }
+                <div>
+                    <label class="block text-sm font-medium mb-1">Nome Completo</label>
+                    <input @bind="_regName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Maria Silva" />
+                    @if (_regErrors.ContainsKey("Name"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_regErrors["Name"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">E-mail</label>
+                    <input type="email" @bind="_regEmail" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="maria@exemplo.com" />
+                    @if (_regErrors.ContainsKey("Email"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_regErrors["Email"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Senha</label>
+                    <input type="password" @bind="_regPassword" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Mín. 6 caracteres" />
+                    @if (_regErrors.ContainsKey("Password"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_regErrors["Password"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Confirmar Senha</label>
+                    <input type="password" @bind="_regConfirmPassword" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Digite a senha novamente" />
+                    @if (_regErrors.ContainsKey("ConfirmPassword"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_regErrors["ConfirmPassword"]</p>
+                    }
+                </div>
+                <div class="flex items-start gap-2">
+                    <input type="checkbox" @bind="_regTerms" id="regTerms" class="mt-0.5 rounded border-[var(--border)]" />
+                    <label for="regTerms" class="text-sm">Concordo com os <span class="text-[var(--primary)] hover:underline cursor-pointer">Termos de Serviço</span> e a <span class="text-[var(--primary)] hover:underline cursor-pointer">Política de Privacidade</span></label>
+                </div>
+                @if (_regErrors.ContainsKey("Terms"))
+                {
+                    <p class="text-xs text-red-500 -mt-2">@_regErrors["Terms"]</p>
+                }
+                <div class="flex justify-end">
+                    <Button Variant="primary" OnClick="SubmitRegistration">Criar Conta</Button>
+                </div>
+            </div>
+        </Card>
+
+        @* ───────── Contact Form ───────── *@
+        <Card>
+            <div class="space-y-4">
+                <div class="mb-2">
+                    <h3 class="font-semibold">Formulário de Contato</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Formulário de contato detalhado com assunto e telefone</p>
+                </div>
+                @if (!string.IsNullOrEmpty(_contactSuccess))
+                {
+                    <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">@_contactSuccess</div>
+                }
+                <div>
+                    <label class="block text-sm font-medium mb-1">Assunto</label>
+                    <select @bind="_contactSubject" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]">
+                        <option value="">Selecione um assunto</option>
+                        <option value="general">Dúvida Geral</option>
+                        <option value="support">Suporte Técnico</option>
+                        <option value="billing">Dúvida de Cobrança</option>
+                        <option value="feedback">Feedback</option>
+                        <option value="partnership">Parceria</option>
+                    </select>
+                    @if (_contactErrors.ContainsKey("Subject"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_contactErrors["Subject"]</p>
+                    }
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nome</label>
+                        <input @bind="_contactName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Maria Silva" />
+                        @if (_contactErrors.ContainsKey("Name"))
+                        {
+                            <p class="mt-1 text-xs text-red-500">@_contactErrors["Name"]</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">E-mail</label>
+                        <input type="email" @bind="_contactEmail" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="maria@exemplo.com" />
+                        @if (_contactErrors.ContainsKey("Email"))
+                        {
+                            <p class="mt-1 text-xs text-red-500">@_contactErrors["Email"]</p>
+                        }
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Telefone</label>
+                    <input type="tel" @bind="_contactPhone" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="(11) 99999-9999" />
+                    @if (_contactErrors.ContainsKey("Phone"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_contactErrors["Phone"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Mensagem</label>
+                    <textarea @bind="_contactMessage" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] h-24 resize-none" placeholder="Como podemos ajudar?"></textarea>
+                    @if (_contactErrors.ContainsKey("Message"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_contactErrors["Message"]</p>
+                    }
+                </div>
+                <div class="flex justify-end">
+                    <Button Variant="primary" OnClick="SubmitContact">Enviar Mensagem</Button>
+                </div>
+            </div>
+        </Card>
+
+        @* ───────── Search Form ───────── *@
+        <Card>
+            <div class="space-y-4">
+                <div class="mb-2">
+                    <h3 class="font-semibold">Formulário de Busca</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Busca avançada com filtros e intervalo de datas</p>
+                </div>
+                @if (!string.IsNullOrEmpty(_searchSuccess))
+                {
+                    <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">@_searchSuccess</div>
+                }
+                <div>
+                    <label class="block text-sm font-medium mb-1">Buscar</label>
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input @bind="_searchQuery" class="w-full pl-10 pr-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Digite sua busca..." />
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Data de</label>
+                        <input type="date" @bind="_searchDateFrom" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Data até</label>
+                        <input type="date" @bind="_searchDateTo" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Categoria</label>
+                    <select @bind="_searchCategory" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]">
+                        <option value="">Todas as Categorias</option>
+                        <option value="documents">Documentos</option>
+                        <option value="images">Imagens</option>
+                        <option value="videos">Vídeos</option>
+                        <option value="audio">Áudio</option>
+                        <option value="other">Outros</option>
+                    </select>
+                </div>
+                <div class="flex justify-between">
+                    <Button Variant="ghost" OnClick="ResetSearch">Limpar</Button>
+                    <Button Variant="primary" OnClick="SubmitSearch">Buscar</Button>
+                </div>
+            </div>
+        </Card>
+
+        @* ───────── Feedback Form ───────── *@
+        <Card>
+            <div class="space-y-4">
+                <div class="mb-2">
+                    <h3 class="font-semibold">Formulário de Avaliação</h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">Avalie sua experiência com estrelas</p>
+                </div>
+                @if (!string.IsNullOrEmpty(_feedbackSuccess))
+                {
+                    <div class="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">@_feedbackSuccess</div>
+                }
+                <div>
+                    <label class="block text-sm font-medium mb-2">Como você avaliaria sua experiência?</label>
+                    <div class="flex gap-1">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            int star = i;
+                            <button @onclick="() => SetRating(star)" class="focus:outline-none transition-colors">
+                                @if (star <= _feedbackRating)
+                                {
+                                    <svg class="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                    </svg>
+                                }
+                                else
+                                {
+                                    <svg class="w-8 h-8 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                    </svg>
+                                }
+                            </button>
+                        }
+                    </div>
+                    @if (_feedbackErrors.ContainsKey("Rating"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_feedbackErrors["Rating"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Categoria</label>
+                    <div class="space-y-2">
+                        @foreach (var category in _feedbackCategories)
+                        {
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="feedbackCategory" value="@category" checked="@(_feedbackCategory == category)" @onchange="() => _feedbackCategory = category" class="border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]" />
+                                <span class="text-sm">@category</span>
+                            </label>
+                        }
+                    </div>
+                    @if (_feedbackErrors.ContainsKey("Category"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_feedbackErrors["Category"]</p>
+                    }
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Comentários</label>
+                    <textarea @bind="_feedbackComments" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] h-24 resize-none" placeholder="Conte mais sobre sua experiência..."></textarea>
+                    @if (_feedbackErrors.ContainsKey("Comments"))
+                    {
+                        <p class="mt-1 text-xs text-red-500">@_feedbackErrors["Comments"]</p>
+                    }
+                </div>
+                <div class="flex justify-end">
+                    <Button Variant="primary" OnClick="SubmitFeedback">Enviar Avaliação</Button>
+                </div>
+            </div>
+        </Card>
+
+    </div>
+</div>
+@code {
+    // ─── Basic Form ───
+    private string _basicName = "";
+    private string _basicEmail = "";
+    private string _basicMessage = "";
+    private string? _basicSuccess;
+    private Dictionary<string, string> _basicErrors = new();
+
+    private void SubmitBasicForm()
+    {
+        _basicErrors.Clear();
+        _basicSuccess = null;
+
+        if (string.IsNullOrWhiteSpace(_basicName))
+            _basicErrors["Name"] = "Nome é obrigatório";
+        if (string.IsNullOrWhiteSpace(_basicEmail))
+            _basicErrors["Email"] = "E-mail é obrigatório";
+        else if (!_basicEmail.Contains("@") || !_basicEmail.Contains("."))
+            _basicErrors["Email"] = "Informe um e-mail válido";
+        if (string.IsNullOrWhiteSpace(_basicMessage))
+            _basicErrors["Message"] = "Mensagem é obrigatória";
+        else if (_basicMessage.Length < 10)
+            _basicErrors["Message"] = "A mensagem deve ter pelo menos 10 caracteres";
+
+        if (_basicErrors.Count == 0)
+        {
+            _basicSuccess = "Mensagem enviada com sucesso!";
+            _basicName = "";
+            _basicEmail = "";
+            _basicMessage = "";
+            _ = ClearAfterDelay(() => _basicSuccess = null);
+        }
+    }
+
+    // ─── Login Form ───
+    private string _loginUsername = "";
+    private string _loginPassword = "";
+    private bool _loginRemember;
+    private string? _loginError;
+    private string? _loginSuccess;
+    private Dictionary<string, string> _loginErrors = new();
+
+    private void SubmitLogin()
+    {
+        _loginErrors.Clear();
+        _loginError = null;
+        _loginSuccess = null;
+
+        if (string.IsNullOrWhiteSpace(_loginUsername))
+            _loginErrors["Username"] = "Usuário é obrigatório";
+        if (string.IsNullOrWhiteSpace(_loginPassword))
+            _loginErrors["Password"] = "Senha é obrigatória";
+        else if (_loginPassword.Length < 4)
+            _loginErrors["Password"] = "A senha deve ter pelo menos 4 caracteres";
+
+        if (_loginErrors.Count == 0)
+        {
+            _loginSuccess = $"Bem-vindo de volta, {_loginUsername}!";
+            _loginUsername = "";
+            _loginPassword = "";
+            _loginRemember = false;
+            _ = ClearAfterDelay(() => _loginSuccess = null);
+        }
+    }
+
+    // ─── Registration Form ───
+    private string _regName = "";
+    private string _regEmail = "";
+    private string _regPassword = "";
+    private string _regConfirmPassword = "";
+    private bool _regTerms;
+    private string? _regError;
+    private string? _regSuccess;
+    private Dictionary<string, string> _regErrors = new();
+
+    private void SubmitRegistration()
+    {
+        _regErrors.Clear();
+        _regError = null;
+        _regSuccess = null;
+
+        if (string.IsNullOrWhiteSpace(_regName))
+            _regErrors["Name"] = "Nome é obrigatório";
+        if (string.IsNullOrWhiteSpace(_regEmail))
+            _regErrors["Email"] = "E-mail é obrigatório";
+        else if (!_regEmail.Contains("@") || !_regEmail.Contains("."))
+            _regErrors["Email"] = "Informe um e-mail válido";
+        if (string.IsNullOrWhiteSpace(_regPassword))
+            _regErrors["Password"] = "Senha é obrigatória";
+        else if (_regPassword.Length < 6)
+            _regErrors["Password"] = "A senha deve ter pelo menos 6 caracteres";
+        if (string.IsNullOrWhiteSpace(_regConfirmPassword))
+            _regErrors["ConfirmPassword"] = "Confirme sua senha";
+        else if (_regPassword != _regConfirmPassword)
+            _regErrors["ConfirmPassword"] = "As senhas não coincidem";
+        if (!_regTerms)
+            _regErrors["Terms"] = "Você deve aceitar os termos";
+
+        if (_regErrors.Count == 0)
+        {
+            _regSuccess = "Conta criada com sucesso! Agora você pode entrar.";
+            _regName = "";
+            _regEmail = "";
+            _regPassword = "";
+            _regConfirmPassword = "";
+            _regTerms = false;
+            _ = ClearAfterDelay(() => _regSuccess = null);
+        }
+    }
+
+    // ─── Contact Form ───
+    private string _contactSubject = "";
+    private string _contactName = "";
+    private string _contactEmail = "";
+    private string _contactPhone = "";
+    private string _contactMessage = "";
+    private string? _contactSuccess;
+    private Dictionary<string, string> _contactErrors = new();
+
+    private void SubmitContact()
+    {
+        _contactErrors.Clear();
+        _contactSuccess = null;
+
+        if (string.IsNullOrWhiteSpace(_contactSubject))
+            _contactErrors["Subject"] = "Selecione um assunto";
+        if (string.IsNullOrWhiteSpace(_contactName))
+            _contactErrors["Name"] = "Nome é obrigatório";
+        if (string.IsNullOrWhiteSpace(_contactEmail))
+            _contactErrors["Email"] = "E-mail é obrigatório";
+        else if (!_contactEmail.Contains("@") || !_contactEmail.Contains("."))
+            _contactErrors["Email"] = "Informe um e-mail válido";
+        if (string.IsNullOrWhiteSpace(_contactPhone))
+            _contactErrors["Phone"] = "Telefone é obrigatório";
+        else if (_contactPhone.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "").Replace("+", "").Length < 7)
+            _contactErrors["Phone"] = "Informe um telefone válido";
+        if (string.IsNullOrWhiteSpace(_contactMessage))
+            _contactErrors["Message"] = "Mensagem é obrigatória";
+
+        if (_contactErrors.Count == 0)
+        {
+            _contactSuccess = "Mensagem enviada! Retornaremos em até 24 horas.";
+            _contactSubject = "";
+            _contactName = "";
+            _contactEmail = "";
+            _contactPhone = "";
+            _contactMessage = "";
+            _ = ClearAfterDelay(() => _contactSuccess = null);
+        }
+    }
+
+    // ─── Search Form ───
+    private string _searchQuery = "";
+    private DateTime? _searchDateFrom;
+    private DateTime? _searchDateTo;
+    private string _searchCategory = "";
+    private string? _searchSuccess;
+
+    private void SubmitSearch()
+    {
+        _searchSuccess = null;
+        var filters = new List<string>();
+        if (!string.IsNullOrWhiteSpace(_searchQuery)) filters.Add($"query=\"{_searchQuery}\"");
+        if (_searchDateFrom.HasValue) filters.Add($"from={_searchDateFrom:yyyy-MM-dd}");
+        if (_searchDateTo.HasValue) filters.Add($"to={_searchDateTo:yyyy-MM-dd}");
+        if (!string.IsNullOrWhiteSpace(_searchCategory)) filters.Add($"category={_searchCategory}");
+        var summary = filters.Count > 0 ? string.Join(", ", filters) : "nenhum filtro";
+        _searchSuccess = $"Busca executada com {summary}";
+        _ = ClearAfterDelay(() => _searchSuccess = null);
+    }
+
+    private void ResetSearch()
+    {
+        _searchQuery = "";
+        _searchDateFrom = null;
+        _searchDateTo = null;
+        _searchCategory = "";
+        _searchSuccess = null;
+    }
+
+    // ─── Feedback Form ───
+    private int _feedbackRating;
+    private string _feedbackCategory = "";
+    private string _feedbackComments = "";
+    private string? _feedbackSuccess;
+    private Dictionary<string, string> _feedbackErrors = new();
+    private readonly string[] _feedbackCategories = new[] { "Produto", "Serviço", "Suporte", "Experiência Geral" };
+
+    private void SetRating(int rating)
+    {
+        _feedbackRating = rating;
+    }
+
+    private void SubmitFeedback()
+    {
+        _feedbackErrors.Clear();
+        _feedbackSuccess = null;
+
+        if (_feedbackRating == 0)
+            _feedbackErrors["Rating"] = "Selecione uma avaliação";
+        if (string.IsNullOrWhiteSpace(_feedbackCategory))
+            _feedbackErrors["Category"] = "Selecione uma categoria";
+        if (string.IsNullOrWhiteSpace(_feedbackComments))
+            _feedbackErrors["Comments"] = "Adicione seus comentários";
+
+        if (_feedbackErrors.Count == 0)
+        {
+            _feedbackSuccess = $"Obrigado! Sua avaliação de {_feedbackRating} estrela(s) foi enviada.";
+            _feedbackRating = 0;
+            _feedbackCategory = "";
+            _feedbackComments = "";
+            _ = ClearAfterDelay(() => _feedbackSuccess = null);
+        }
+    }
+
+    // ─── Helpers ───
+    private async Task ClearAfterDelay(Action action, int delayMs = 3000)
+    {
+        await Task.Delay(delayMs);
+        action.Invoke();
+        StateHasChanged();
+    }
+}

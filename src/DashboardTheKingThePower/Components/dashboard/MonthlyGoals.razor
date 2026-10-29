@@ -1,0 +1,36 @@
+@using DashboardTheKingThePower.Components.ui
+
+<div class="rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]">
+    <div class="px-6 py-4 border-b border-[var(--border)]">
+        <h3 class="font-semibold">Metas do Mês</h3>
+    </div>
+    <div class="p-6 space-y-4">
+        @foreach (var goal in goals)
+        {
+            <div>
+                <div class="flex justify-between text-sm mb-1">
+                    <span>@goal.Name</span>
+                    <span>@goal.Current/@goal.Target</span>
+                </div>
+                <div class="h-2 bg-[var(--secondary)] rounded-full overflow-hidden">
+                    <div class="h-full @goal.ColorClass rounded-full" style="width: @goal.Percentage%"></div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Goal> goals = new()
+    {
+        new("Receita", 75000, 100000, "bg-green-500"),
+        new("Novos Clientes", 18, 25, "bg-blue-500"),
+        new("Projetos", 12, 15, "bg-purple-500"),
+        new("Tarefas", 45, 50, "bg-orange-500")
+    };
+    
+    private record Goal(string Name, decimal Current, decimal Target, string ColorClass)
+    {
+        public decimal Percentage => (Current / Target) * 100;
+    }
+}

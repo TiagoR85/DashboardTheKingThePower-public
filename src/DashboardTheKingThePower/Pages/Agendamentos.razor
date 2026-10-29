@@ -1,0 +1,343 @@
+@page "/agendamentos"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Agendamentos</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">Agendamentos</h1>
+    <Button OnClick="ShowCreateModal">+ Novo Agendamento</Button>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Total de Agendamentos</p>
+            <p class="text-2xl font-bold mt-1">@appointments.Count</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Próximos</p>
+            <p class="text-2xl font-bold mt-1 text-blue-500">@appointments.Count(a => a.Status == "Scheduled" || a.Status == "Confirmed")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Concluídos</p>
+            <p class="text-2xl font-bold mt-1 text-green-500">@appointments.Count(a => a.Status == "Completed")</p>
+        </div>
+    </Card>
+    <Card>
+        <div class="p-4">
+            <p class="text-sm text-[var(--muted-foreground)]">Cancelados</p>
+            <p class="text-2xl font-bold mt-1 text-red-500">@appointments.Count(a => a.Status == "Cancelled")</p>
+        </div>
+    </Card>
+</div>
+
+<Card>
+    <div class="p-4 border-b border-[var(--border)] flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <input class="flex-1 w-full sm:w-auto px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="Buscar agendamentos..." @bind="searchTerm" />
+        <input type="date" class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" value="@filterDate" @onchange="e => filterDate = e.Value?.ToString() ?? string.Empty" />
+        <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="filterStatus">
+            <option value="all">Todos os Status</option>
+            <option value="Scheduled">Agendado</option>
+            <option value="Confirmed">Confirmado</option>
+            <option value="Completed">Concluído</option>
+            <option value="Cancelled">Cancelado</option>
+        </select>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-[var(--border)]">
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">ID</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Cliente</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Serviço</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Data</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Horário</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Duração</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Status</th>
+                    <th class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var appt in filteredAppointments)
+                {
+                    @if (editingId == appt.Id)
+                    {
+                        <tr class="border-b border-[var(--border)]">
+                            <td class="p-4 font-medium">@appt.Id</td>
+                            <td class="p-4">
+                                <input class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editClient" />
+                            </td>
+                            <td class="p-4">
+                                <input class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editService" />
+                            </td>
+                            <td class="p-4">
+                                <input type="date" class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" value="@editDate" @onchange="e => editDate = e.Value?.ToString() ?? string.Empty" />
+                            </td>
+                            <td class="p-4">
+                                <input class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editTime" placeholder="09:00 - 10:30" />
+                            </td>
+                            <td class="p-4">
+                                <input class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editDuration" />
+                            </td>
+                            <td class="p-4">
+                                <select class="w-full px-2 py-1 border border-[var(--border)] rounded bg-[var(--background)] text-sm" @bind="editStatus">
+                                    <option value="Scheduled">Agendado</option>
+                                    <option value="Confirmed">Confirmado</option>
+                                    <option value="Completed">Concluído</option>
+                                    <option value="Cancelled">Cancelado</option>
+                                </select>
+                            </td>
+                            <td class="p-4">
+                                <button class="text-green-500 hover:text-green-700 mr-2 text-sm" @onclick="SaveEdit">Salvar</button>
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)] text-sm" @onclick="CancelEdit">Cancelar</button>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr class="border-b border-[var(--border)] hover:bg-[var(--muted)]">
+                            <td class="p-4 font-medium">@appt.Id</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs" style="background-color: @appt.Color">
+                                        @appt.Client.Split(' ').Select(n => n[0].ToString()).Aggregate("", (a, b) => a + b)
+                                    </div>
+                                    <span>@appt.Client</span>
+                                </div>
+                            </td>
+                            <td class="p-4 text-sm">@appt.Service</td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)]">@appt.Date</td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)]">@appt.Time</td>
+                            <td class="p-4 text-sm text-[var(--muted-foreground)]">@appt.Duration</td>
+                            <td class="p-4">
+                                <span class="text-xs px-2 py-1 rounded-full" style="background-color: @GetStatusColor(appt.Status); color: white;">@GetStatusLabel(appt.Status)</span>
+                            </td>
+                            <td class="p-4">
+                                <button class="text-[var(--muted-foreground)] hover:text-[var(--foreground)] mr-2" @onclick="() => StartEdit(appt)">Editar</button>
+                                <button class="text-[var(--muted-foreground)] hover:text-red-500" @onclick="() => ShowDeleteConfirm(appt)">Excluir</button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</Card>
+
+@if (showDeleteModal)
+{
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @onclick="HideDeleteConfirm">
+        <div class="bg-[var(--background)] rounded-xl border border-[var(--border)] p-6 w-full max-w-md" @onclick:stopPropagation>
+            <h3 class="text-lg font-bold mb-2">Excluir Agendamento</h3>
+            <p class="text-[var(--muted-foreground)] mb-6">Tem certeza que deseja excluir o agendamento <strong>@deleteTarget?.Id</strong> de <strong>@deleteTarget?.Client</strong>? Esta ação não pode ser desfeita.</p>
+            <div class="flex justify-end gap-3">
+                <Button Variant="secondary" OnClick="HideDeleteConfirm">Cancelar</Button>
+                <button class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors" @onclick="ConfirmDelete">Excluir</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCreateModal)
+{
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @onclick="HideCreateModal">
+        <div class="bg-[var(--background)] rounded-xl border border-[var(--border)] p-6 w-full max-w-lg" @onclick:stopPropagation>
+            <h3 class="text-lg font-bold mb-4">Novo Agendamento</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Cliente</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newClient" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Serviço</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newService" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Data</label>
+                    <input type="date" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newDate" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Horário</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newTime" placeholder="09:00 - 10:30" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Duração</label>
+                    <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newDuration" placeholder="1h 30min" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="newStatus">
+                        <option value="Scheduled">Agendado</option>
+                        <option value="Confirmed">Confirmado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3">
+                <Button Variant="secondary" OnClick="HideCreateModal">Cancelar</Button>
+                <Button OnClick="CreateAppointment">Criar</Button>
+            </div>
+        </div>
+    </div>
+}
+@code {
+    private string searchTerm = "";
+    private string filterStatus = "all";
+    private string filterDate = "";
+
+    private bool showDeleteModal = false;
+    private bool showCreateModal = false;
+    private Appointment? deleteTarget = null;
+
+    private string editingId = "";
+    private string editClient = "";
+    private string editService = "";
+    private string editDate = "";
+    private string editTime = "";
+    private string editDuration = "";
+    private string editStatus = "";
+
+    private string newClient = "";
+    private string newService = "";
+    private DateOnly newDate = DateOnly.FromDateTime(DateTime.Today);
+    private string newTime = "";
+    private string newDuration = "";
+    private string newStatus = "Scheduled";
+
+    private List<Appointment> appointments = new()
+    {
+        new("APT-001", "Tiago Silva", "Desenvolvimento Web", "2026-08-04", "09:00 - 10:30", "1h 30min", "Completed", "#3b82f6"),
+        new("APT-002", "João Santos", "Consultoria", "2026-08-05", "14:00 - 15:00", "1h", "Confirmed", "#10b981"),
+        new("APT-003", "Maria Oliveira", "Revisão de Design", "2026-08-06", "10:00 - 11:30", "1h 30min", "Scheduled", "#8b5cf6"),
+        new("APT-004", "Pedro Costa", "Desenvolvimento Web", "2026-08-07", "09:00 - 12:00", "3h", "Confirmed", "#ec4899"),
+        new("APT-005", "Ana Ferreira", "Consultoria", "2026-08-08", "11:00 - 12:00", "1h", "Completed", "#f59e0b"),
+        new("APT-006", "Lucas Almeida", "Revisão de Design", "2026-08-11", "14:00 - 15:30", "1h 30min", "Scheduled", "#06b6d4"),
+        new("APT-007", "Camila Rodrigues", "Desenvolvimento Web", "2026-08-12", "09:00 - 11:00", "2h", "Cancelled", "#ef4444"),
+        new("APT-008", "Rafael Lima", "Consultoria", "2026-08-13", "10:00 - 11:00", "1h", "Confirmed", "#14b8a6"),
+        new("APT-009", "Juliana Mendes", "Revisão de Design", "2026-08-14", "15:00 - 16:00", "1h", "Scheduled", "#a855f7"),
+        new("APT-010", "Bruno Carvalho", "Desenvolvimento Web", "2026-08-15", "09:00 - 10:00", "1h", "Scheduled", "#f97316"),
+        new("APT-011", "Fernanda Dias", "Consultoria", "2026-08-18", "14:00 - 15:30", "1h 30min", "Confirmed", "#64748b"),
+        new("APT-012", "Gabriel Souza", "Revisão de Design", "2026-08-19", "10:00 - 12:00", "2h", "Completed", "#84cc16")
+    };
+
+    private IEnumerable<Appointment> filteredAppointments => appointments
+        .Where(a => (filterStatus == "all" || a.Status == filterStatus) &&
+                     (string.IsNullOrEmpty(searchTerm) ||
+                      a.Client.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      a.Id.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                      a.Service.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) &&
+                     (string.IsNullOrEmpty(filterDate) || a.Date == filterDate));
+
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Scheduled" => "Agendado",
+        "Confirmed" => "Confirmado",
+        "Completed" => "Concluído",
+        "Cancelled" => "Cancelado",
+        _ => status
+    };
+
+    private string GetStatusColor(string status) => status switch
+    {
+        "Scheduled" => "#3b82f6",
+        "Confirmed" => "#10b981",
+        "Completed" => "#6b7280",
+        "Cancelled" => "#ef4444",
+        _ => "#6b7280"
+    };
+
+    private void ShowCreateModal()
+    {
+        newClient = "";
+        newService = "";
+        newDate = DateOnly.FromDateTime(DateTime.Today);
+        newTime = "";
+        newDuration = "";
+        newStatus = "Scheduled";
+        showCreateModal = true;
+    }
+
+    private void HideCreateModal() => showCreateModal = false;
+
+    private void CreateAppointment()
+    {
+        if (string.IsNullOrWhiteSpace(newClient) || string.IsNullOrWhiteSpace(newService)) return;
+
+        var nextId = appointments.Count + 1;
+        var colors = new[] { "#3b82f6", "#10b981", "#8b5cf6", "#ec4899", "#f59e0b", "#06b6d4", "#ef4444", "#14b8a6", "#a855f7", "#f97316" };
+        var color = colors[nextId % colors.Length];
+
+        appointments.Add(new(
+            $"APT-{nextId:D3}",
+            newClient,
+            newService,
+            newDate.ToString("yyyy-MM-dd"),
+            newTime,
+            newDuration,
+            newStatus,
+            color
+        ));
+
+        showCreateModal = false;
+    }
+
+    private void StartEdit(Appointment appt)
+    {
+        editingId = appt.Id;
+        editClient = appt.Client;
+        editService = appt.Service;
+        editDate = appt.Date;
+        editTime = appt.Time;
+        editDuration = appt.Duration;
+        editStatus = appt.Status;
+    }
+
+    private void CancelEdit() => editingId = "";
+
+    private void SaveEdit()
+    {
+        var idx = appointments.FindIndex(a => a.Id == editingId);
+        if (idx < 0) return;
+
+        var old = appointments[idx];
+        appointments[idx] = old with
+        {
+            Client = editClient,
+            Service = editService,
+            Date = editDate,
+            Time = editTime,
+            Duration = editDuration,
+            Status = editStatus
+        };
+        editingId = "";
+    }
+
+    private void ShowDeleteConfirm(Appointment appt)
+    {
+        deleteTarget = appt;
+        showDeleteModal = true;
+    }
+
+    private void HideDeleteConfirm()
+    {
+        showDeleteModal = false;
+        deleteTarget = null;
+    }
+
+    private void ConfirmDelete()
+    {
+        if (deleteTarget != null)
+        {
+            appointments.Remove(deleteTarget);
+        }
+        showDeleteModal = false;
+        deleteTarget = null;
+    }
+
+    public record Appointment(string Id, string Client, string Service, string Date, string Time, string Duration, string Status, string Color);
+}

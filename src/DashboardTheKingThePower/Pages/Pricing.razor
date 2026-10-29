@@ -1,0 +1,120 @@
+@page "/pricing"
+@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Planos</PageTitle>
+
+<div class="text-center max-w-2xl mx-auto mb-10">
+    <h1 class="text-2xl font-bold mb-2">Planos para cada momento</h1>
+    <p class="text-sm text-[var(--muted-foreground)]">Comece de graça e evolua quando precisar. Cancele quando quiser.</p>
+
+    <div class="inline-flex items-center gap-3 mt-6 text-sm">
+        <span class="@(!_annual ? "font-medium" : "text-[var(--muted-foreground)]")">Mensal</span>
+        <button role="switch" aria-checked="@(_annual ? "true" : "false")" aria-label="Preços anuais" class="relative w-12 h-6 rounded-full transition-colors @(_annual ? "bg-[var(--primary)]" : "bg-[var(--border)]")" @onclick="() => _annual = !_annual">
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform @(_annual ? "translate-x-6" : "")"></span>
+        </button>
+        <span class="@(_annual ? "font-medium" : "text-[var(--muted-foreground)]")">Anual</span>
+        @if (_annual) { <Badge Variant="success">2 meses grátis</Badge> }
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+    @foreach (var plan in _plans)
+    {
+        <Card Class="@(plan.Destaque ? "border-[var(--primary)] relative" : "")">
+            <ChildContent>
+                @if (plan.Destaque) { <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-xs bg-[var(--primary)] text-white px-3 py-0.5 rounded-full">Mais popular</span> }
+                <h3 class="font-semibold">@plan.Nome</h3>
+                <p class="text-sm text-[var(--muted-foreground)] mt-1 min-h-10">@plan.Descricao</p>
+                <div class="mt-4">
+                    <span class="text-3xl font-bold">R$ @Preco(plan).ToString("N2")</span>
+                    <span class="text-sm text-[var(--muted-foreground)]">/mês</span>
+                    @if (_annual)
+                    {
+                        <p class="text-xs text-green-600 mt-1">R$ @PricingCalculator.AnnualTotal(plan.Mensal).ToString("N2") por ano</p>
+                    }
+                </div>
+                <ul class="mt-4 space-y-2 text-sm">
+                    @foreach (var f in plan.Recursos)
+                    {
+                        <li class="flex items-center gap-2">
+                            <svg aria-hidden="true" class="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            @f
+                        </li>
+                    }
+                </ul>
+                <div class="mt-6">
+                    <Button Variant="@(plan.Destaque ? "primary" : "secondary")">Escolher @plan.Nome</Button>
+                </div>
+            </ChildContent>
+        </Card>
+    }
+</div>
+
+<div class="max-w-5xl mx-auto mt-12">
+    <h2 class="text-lg font-semibold mb-4 text-center">Compare os planos</h2>
+    <Card>
+        <ChildContent>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-[var(--border)]">
+                            <th scope="col" class="text-left p-4 text-sm font-medium text-[var(--muted-foreground)]">Recurso</th>
+                            @foreach (var plan in _plans)
+                            {
+                                <th scope="col" class="text-left p-4 text-sm font-medium @(plan.Destaque ? "text-[var(--primary)]" : "")">@plan.Nome</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-[var(--border)]">
+                            <td class="p-4 font-medium">Preço</td>
+                            @foreach (var plan in _plans)
+                            {
+                                <td class="p-4 text-sm font-semibold">R$ @Preco(plan).ToString("N2")/mês</td>
+                            }
+                        </tr>
+                        @foreach (var row in _comparacao)
+                        {
+                            <tr class="border-b border-[var(--border)] hover:bg-[var(--secondary)] transition-colors">
+                                <td class="p-4 font-medium">@row.Caracteristica</td>
+                                @foreach (var valor in row.Valores)
+                                {
+                                    <td class="p-4 text-sm text-[var(--muted-foreground)]">@valor</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </ChildContent>
+    </Card>
+</div>
+
+@code {
+    private record Plano(string Nome, string Descricao, decimal Mensal, bool Destaque, List<string> Recursos);
+
+    private bool _annual = false;
+
+    private List<Plano> _plans = new()
+    {
+        new("Início", "Para quem está começando.", 49.90m, false, new() { "Até 3 usuários", "10 GB de armazenamento", "Relatórios básicos", "Suporte por email" }),
+        new("Profissional", "Para times em crescimento.", 99.90m, true, new() { "Até 15 usuários", "100 GB de armazenamento", "Relatórios avançados", "Suporte prioritário", "Integrações" }),
+        new("Empresarial", "Para operações grandes.", 249.90m, false, new() { "Usuários ilimitados", "1 TB de armazenamento", "Relatórios personalizados", "Suporte 24/7", "Gerente de conta" }),
+    };
+
+    private decimal Preco(Plano p) => _annual ? PricingCalculator.MonthlyEquivalent(p.Mensal) : p.Mensal;
+
+    // Linhas da tabela de comparação, alinhadas à ordem de _plans (Início, Profissional, Empresarial)
+    private List<(string Caracteristica, string[] Valores)> _comparacao = new()
+    {
+        ("Usuários", new[] { "Até 3", "Até 15", "Ilimitados" }),
+        ("Armazenamento", new[] { "10 GB", "100 GB", "1 TB" }),
+        ("Relatórios", new[] { "Básicos", "Avançados", "Personalizados" }),
+        ("Suporte", new[] { "Por email", "Prioritário", "24/7" }),
+        ("Integrações", new[] { "—", "Incluídas", "Incluídas" }),
+        ("Gerente de conta", new[] { "—", "—", "Incluído" }),
+    };
+}

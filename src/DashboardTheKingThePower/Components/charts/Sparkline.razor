@@ -1,0 +1,41 @@
+@using ApexCharts
+@using DashboardTheKingThePower.Components.charts
+
+<div style="height: 48px; min-height: 48px; max-height: 48px; overflow: hidden;">
+    <ApexChart TItem="SparklineData" Options="options" Height="48">
+        <ApexPointSeries TItem="SparklineData"
+                         Items="Data"
+                         SeriesType="SeriesType.Line"
+                         XValue="e => e.Label"
+                         YValue="e => e.Value" />
+    </ApexChart>
+</div>
+
+@code {
+    [Parameter] public List<SparklineData> Data { get; set; } = new();
+
+    private ApexChartOptions<SparklineData> options = new()
+    {
+        Chart = new Chart
+        {
+            Toolbar = new Toolbar { Show = false },
+            Animations = new Animations { Enabled = true, Speed = 400 },
+            // sem o modo sparkline o apex subtrai eixo+legenda de 48px e o plot
+            // fica com height 0 (clip gridRectMask h=0 => linha invisivel)
+            Sparkline = new ChartSparkline { Enabled = true }
+        },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        Colors = new List<string> { "var(--chart-1)" },
+        Grid = new Grid { Show = false },
+        Legend = new Legend { Show = false },
+        Tooltip = new Tooltip { Enabled = false },
+        Markers = new Markers { Size = 0 }
+    };
+
+    protected override void OnInitialized()
+    {
+        // Sparkline: minimal config, no defaults needed
+    }
+
+    public record SparklineData(string Label, decimal Value);
+}

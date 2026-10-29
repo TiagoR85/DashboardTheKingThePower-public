@@ -1,0 +1,224 @@
+﻿@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Layout
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+@inject AuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@implements IDisposable
+
+@if (_isLoading)
+{
+    <div class="min-h-screen bg-[var(--background)] flex items-center justify-center">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div>
+    </div>
+}
+else if (_isAuthenticated == true)
+{
+    <div class="min-h-screen bg-[var(--background)]"
+         @onmousemove="ResetTimer"
+         @onclick="ResetTimer"
+         @onkeydown="ResetTimer">
+        @if (!_isMobile)
+        {
+            <Sidebar IsCollapsed="@_isCollapsed" IsMobile="@_isMobile" OnToggle="ToggleSidebar" OnClose="CloseSidebar" />
+        }
+        <div class="@ContentClass">
+            <Header OnToggleSidebar="ToggleSidebar" />
+            <main class="p-4 md:p-6 pb-20 md:pb-6">
+                @Body
+            </main>
+        </div>
+        @if (_isMobile)
+        {
+            <BottomNav OnMenuClick="ToggleMobileSidebar" />
+        }
+        <CommandPalette />
+        <ToastContainer />
+    </div>
+
+    @if (_showSessionExpired)
+    {
+        <div class="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center">
+            <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+                <div class="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                </div>
+                <h2 class="text-xl font-bold mb-2">Session Expired</h2>
+                <p class="text-[var(--muted-foreground)] mb-6">Your session has expired. Please sign in again.</p>
+                <button @onclick="GoToLogin" class="w-full py-2.5 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 font-medium">
+                    Sign In
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (_isMobile && _showMobileSidebar)
+    {
+        <div class="fixed inset-0 bg-black/50 z-40" @onclick="CloseMobileSidebar"></div>
+        <Sidebar IsCollapsed="false" IsMobile="true" OnToggle="CloseMobileSidebar" OnClose="CloseMobileSidebar" />
+    }
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool? _isAuthenticated;
+    private bool _isCollapsed;
+    private bool _isMobile;
+    private bool _showMobileSidebar;
+    private bool _showSessionExpired;
+    private bool _disposed;
+    private bool _jsInitialized;
+    private DotNetObjectReference<MainLayout>? _dotNetRef;
+    private System.Timers.Timer? _sessionTimer;
+
+    // literais completos de propósito: o extractor do Tailwind não enxerga $ "ml-{...}" concatenado
+    private string ContentClass => _isMobile
+        ? "transition-all duration-300"
+        : _isCollapsed ? "ml-[72px] transition-all duration-300" : "ml-[260px] transition-all duration-300";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user = await AuthStateProvider.GetCurrentUserAsync();
+            _isAuthenticated = user != null;
+        }
+        catch
+        {
+            _isAuthenticated = false;
+        }
+
+        if (_isAuthenticated != true)
+        {
+            Navigation.NavigateTo("login", forceLoad: false);
+            return;
+        }
+
+        _isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_disposed || _isAuthenticated != true) return;
+
+        // NÃO usar firstRender aqui: o 1º render do layout acontece DURANTE o auth
+        // assíncrono (spinner, _isAuthenticated == null) e o guard acima aborta —
+        // com "firstRender &&" o init (mobile/collapsed/listener/timer) nunca rodava.
+        // O guard _jsInitialized garante execução única.
+        if (!_jsInitialized)
+        {
+            try
+            {
+                _jsInitialized = true;
+                _isCollapsed = await JS.InvokeAsync<bool>("getSidebarCollapsed");
+                _isMobile = await JS.InvokeAsync<bool>("getIsMobile");
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await JS.InvokeVoidAsync("addResizeListener", _dotNetRef);
+                StartSessionTimer();
+                StateHasChanged();
+            }
+            catch (ObjectDisposedException) { return; }
+            catch (JSDisconnectedException) { return; }
+            catch (InvalidOperationException) { return; }
+            catch { return; }
+        }
+    }
+
+    private void StartSessionTimer()
+    {
+        _sessionTimer?.Dispose();
+        _sessionTimer = new System.Timers.Timer(120000);
+        _sessionTimer.Elapsed += (s, e) =>
+        {
+            if (_disposed) return;
+            _sessionTimer?.Stop();
+            try
+            {
+                InvokeAsync(() =>
+                {
+                    if (_disposed) return;
+                    _showSessionExpired = true;
+                    StateHasChanged();
+                });
+            }
+            catch { }
+        };
+        _sessionTimer.AutoReset = false;
+        _sessionTimer.Start();
+    }
+
+    private async Task ResetTimer()
+    {
+        if (_disposed || _showSessionExpired) return;
+
+        try
+        {
+            var user = await AuthStateProvider.GetCurrentUserAsync();
+            if (user == null) return;
+
+            _sessionTimer?.Stop();
+            _sessionTimer?.Start();
+        }
+        catch { }
+    }
+
+    private async Task GoToLogin()
+    {
+        _showSessionExpired = false;
+        await AuthStateProvider.LogoutAsync();
+    }
+
+    private async Task ToggleSidebar()
+    {
+        _isCollapsed = !_isCollapsed;
+        try { await JS.InvokeVoidAsync("setSidebarCollapsed", _isCollapsed); }
+        catch { }
+    }
+
+    private void ToggleMobileSidebar()
+    {
+        _showMobileSidebar = !_showMobileSidebar;
+    }
+
+    private void CloseMobileSidebar()
+    {
+        _showMobileSidebar = false;
+    }
+
+    private void CloseSidebar()
+    {
+        if (_isMobile)
+        {
+            _showMobileSidebar = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnResize(bool isMobile)
+    {
+        if (_disposed) return;
+        _isMobile = isMobile;
+        _showMobileSidebar = false;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _sessionTimer?.Stop();
+        _sessionTimer?.Dispose();
+        _sessionTimer = null;
+        try
+        {
+            if (_jsInitialized)
+                _ = JS.InvokeVoidAsync("removeResizeListener");
+        }
+        catch { }
+        try { _dotNetRef?.Dispose(); } catch { }
+        _dotNetRef = null;
+    }
+}

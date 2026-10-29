@@ -1,0 +1,116 @@
+@page "/mail"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>E-mail</PageTitle>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-140px)]">
+    <Card>
+        <div class="p-4">
+            <button class="w-full py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 mb-4">Escrever</button>
+            <nav class="space-y-1">
+                <button class="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg @(currentFolder == "inbox" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--muted)]")" @onclick='() => SetFolder("inbox")'>
+                    <span>Caixa de Entrada</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded-full @(currentFolder == "inbox" ? "bg-white/20" : "bg-[var(--muted)]")">12</span>
+                </button>
+                <button class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg @(currentFolder == "starred" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--muted)]")" @onclick='() => SetFolder("starred")'>
+                    <span>Com estrela</span>
+                </button>
+                <button class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg @(currentFolder == "sent" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--muted)]")" @onclick='() => SetFolder("sent")'>
+                    <span>Enviados</span>
+                </button>
+                <button class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg @(currentFolder == "drafts" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--muted)]")" @onclick='() => SetFolder("drafts")'>
+                    <span>Rascunhos</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded-full @(currentFolder == "drafts" ? "bg-white/20" : "bg-[var(--muted)]")">3</span>
+                </button>
+                <button class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg @(currentFolder == "trash" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--muted)]")" @onclick='() => SetFolder("trash")'>
+                    <span>Lixeira</span>
+                </button>
+            </nav>
+        </div>
+    </Card>
+
+    <div class="lg:col-span-1">
+        <Card>
+            <div class="p-4 border-b border-[var(--border)]">
+                <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" placeholder="Buscar e-mails..." />
+            </div>
+            <div class="divide-y divide-[var(--border)] overflow-y-auto max-h-[calc(100vh-240px)]">
+                @foreach (var email in emails.Where(e => currentFolder == "all" || e.Folder == currentFolder))
+                {
+                    <div class="p-4 cursor-pointer hover:bg-[var(--muted)] @(selectedEmail?.Id == email.Id ? "bg-[var(--muted)]" : "")" @onclick="() => SelectEmail(email)">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0" style="background-color: @email.Color">
+                                @email.From[0]
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="font-medium text-sm truncate">@email.From</p>
+                                    <span class="text-xs text-[var(--muted-foreground)]">@email.Time</span>
+                                </div>
+                                <p class="text-sm truncate">@email.Subject</p>
+                                <p class="text-xs text-[var(--muted-foreground)] truncate">@email.Preview</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </Card>
+    </div>
+
+    <div class="lg:col-span-2">
+        @if (selectedEmail != null)
+        {
+            <Card>
+                <div class="p-4 border-b border-[var(--border)]">
+                    <h2 class="font-semibold">@selectedEmail.Subject</h2>
+                    <div class="flex items-center gap-3 mt-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm" style="background-color: @selectedEmail.Color">
+                            @selectedEmail.From[0]
+                        </div>
+                        <div>
+                            <p class="font-medium text-sm">@selectedEmail.From</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">@selectedEmail.From</p>
+                        </div>
+                        <span class="ml-auto text-xs text-[var(--muted-foreground)]">@selectedEmail.Date</span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <p class="text-[var(--foreground)] leading-relaxed">@selectedEmail.Body</p>
+                </div>
+                <div class="p-4 border-t border-[var(--border)] flex gap-2">
+                    <button class="px-4 py-2 text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--muted)]">Responder</button>
+                    <button class="px-4 py-2 text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--muted)]">Encaminhar</button>
+                </div>
+            </Card>
+        }
+        else
+        {
+            <Card>
+                <div class="p-6 flex items-center justify-center h-[calc(100vh-240px)]">
+                    <p class="text-[var(--muted-foreground)]">Selecione um e-mail para ler</p>
+                </div>
+            </Card>
+        }
+    </div>
+</div>
+@code {
+    private string currentFolder = "inbox";
+    private EmailItem? selectedEmail;
+
+    private List<EmailItem> emails = new()
+    {
+        new(1, "João Silva", "Atualização do projeto", "Oi pessoal, segue o status mais recente do projeto...", "2 horas atrás", "inbox", "#3b82f6", "Oi pessoal, segue o status mais recente do projeto...", "07/08/2026"),
+        new(2, "Sarah Johnson", "Reunião amanhã", "Lembrete: reunião amanhã às 10h. Confirma presença?", "5 horas atrás", "inbox", "#10b981", "Lembrete: reunião amanhã às 10h. Confirma presença?", "07/08/2026"),
+        new(3, "Mike Wilson", "Fatura #INV-001", "Segue a fatura referente aos serviços do mês passado.", "1 dia atrás", "inbox", "#f59e0b", "Segue a fatura referente aos serviços do mês passado.", "06/08/2026"),
+        new(4, "Emily Davis", "Revisão de design", "Os novos layouts estão prontos. Dá uma olhada quando puder.", "2 dias atrás", "inbox", "#8b5cf6", "Os novos layouts estão prontos. Dá uma olhada quando puder.", "05/08/2026"),
+        new(5, "Chris Brown", "Acesso liberado", "Seu acesso ao dashboard foi configurado. Qualquer dúvida é só chamar.", "1 semana atrás", "inbox", "#ec4899", "Seu acesso ao dashboard foi configurado. Qualquer dúvida é só chamar.", "01/08/2026"),
+        new(6, "Alex Johnson", "Re: Dúvida", "Boa pergunta. Segue a resposta com mais detalhes.", "3 dias atrás", "sent", "#3b82f6", "Boa pergunta. Segue a resposta com mais detalhes.", "04/08/2026")
+    };
+
+    private void SetFolder(string folder) { currentFolder = folder; selectedEmail = null; }
+    private void SelectEmail(EmailItem email) { selectedEmail = email; }
+
+    public record EmailItem(int Id, string From, string Subject, string Body, string Time, string Folder, string Color, string Preview, string Date);
+}

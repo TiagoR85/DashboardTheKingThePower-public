@@ -1,0 +1,105 @@
+@page "/profile"
+@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject AuthStateProvider AuthState
+@inject ToastService Toast
+
+<PageTitle>Perfil</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Meu perfil</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <Card>
+        <div class="flex flex-col items-center text-center">
+            <div class="w-20 h-20 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-2xl font-bold">@_initials</div>
+            <h2 class="font-semibold mt-4">@_name</h2>
+            <p class="text-sm text-[var(--muted-foreground)]">@_email</p>
+            <span class="mt-2 text-xs px-2.5 py-0.5 rounded-full bg-[var(--secondary)]">@_role</span>
+            <p class="text-xs text-[var(--muted-foreground)] mt-4">Membro desde @_createdAt</p>
+        </div>
+    </Card>
+
+    <Card Class="lg:col-span-2">
+        <ChildContent>
+            <h2 class="font-semibold mb-4">Dados da conta</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="profile-nome">Nome</label>
+                    <input id="profile-nome" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="_name" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="profile-email">E-mail</label>
+                    <input id="profile-email" type="email" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" @bind="_email" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1" for="profile-funcao">Função</label>
+                    <input id="profile-funcao" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" value="@_role" disabled />
+                </div>
+                <div class="flex justify-end">
+                    <Button OnClick="SaveProfile">Salvar alterações</Button>
+                </div>
+            </div>
+        </ChildContent>
+    </Card>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+    <Card><p class="text-sm text-[var(--muted-foreground)]">Projetos ativos</p><p class="text-2xl font-bold mt-1">8</p></Card>
+    <Card><p class="text-sm text-[var(--muted-foreground)]">Tarefas concluídas</p><p class="text-2xl font-bold mt-1">42</p></Card>
+    <Card><p class="text-sm text-[var(--muted-foreground)]">Horas este mês</p><p class="text-2xl font-bold mt-1">126h</p></Card>
+</div>
+
+<Card Class="mt-6">
+    <ChildContent>
+        <h2 class="font-semibold mb-4">Atividade recente</h2>
+        <ul class="space-y-3 text-sm">
+            <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-green-500"></span> Tarefa <strong>Setup do projeto</strong> movida para Concluído — ontem</li>
+            <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-[var(--primary)]"></span> Comentário em <strong>Revisão do módulo de pagamentos</strong> — há 2 dias</li>
+            <li class="flex items-center gap-3"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Login de um novo dispositivo — há 3 dias</li>
+        </ul>
+    </ChildContent>
+</Card>
+
+@code {
+    private string _name = "", _email = "", _role = "User", _initials = "?", _createdAt = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthState.GetCurrentUserAsync();
+        if (user == null) return; // [Authorize] garante que não chega aqui sem sessão
+        _name = user.Name;
+        _email = user.Email;
+        _role = user.Role;
+        _createdAt = user.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy");
+        _initials = ComputeInitials(user.Name);
+    }
+
+    // Mesma lógica usada na iniciação do avatar — extraída para reuso pós-save
+    private static string ComputeInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var initials = string.Concat(parts.Select(p => char.ToUpperInvariant(p[0])));
+        return initials.Length > 2 ? initials[..2] : initials;
+    }
+
+    private async Task SaveProfile()
+    {
+        if (string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_email))
+        {
+            Toast.ShowError("Nome e email são obrigatórios.");
+            return;
+        }
+        try
+        {
+            await AuthState.UpdateProfileAsync(_name, _email);
+            _initials = ComputeInitials(_name); // avatar reflete o novo nome sem F5
+            Toast.ShowSuccess("Perfil atualizado.");
+        }
+        catch (Exception)
+        {
+            Toast.ShowError("Não foi possível salvar. Verifique os dados.");
+        }
+    }
+}

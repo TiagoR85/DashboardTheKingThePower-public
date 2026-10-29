@@ -1,0 +1,10 @@
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        var currentUri = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var loginUrl = string.IsNullOrEmpty(currentUri) ? "login" : $"login?returnUrl={Uri.EscapeDataString(currentUri)}";
+        Navigation.NavigateTo(loginUrl);
+    }
+}

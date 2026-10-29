@@ -1,0 +1,274 @@
+@page "/finance"
+@using ApexCharts
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Financeiro</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Visão Geral Financeira</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <Card>
+        <p class="text-sm text-[var(--muted-foreground)]">Receita Total</p>
+        <p class="text-2xl font-bold mt-1">R$ 482.950</p>
+        <p class="text-sm text-green-500 mt-1">+12,5% vs mês anterior</p>
+    </Card>
+    <Card>
+        <p class="text-sm text-[var(--muted-foreground)]">Despesas</p>
+        <p class="text-2xl font-bold mt-1">R$ 127.430</p>
+        <p class="text-sm text-red-500 mt-1">+3,2% vs mês anterior</p>
+    </Card>
+    <Card>
+        <p class="text-sm text-[var(--muted-foreground)]">Lucro Líquido</p>
+        <p class="text-2xl font-bold mt-1">R$ 355.520</p>
+        <p class="text-sm text-green-500 mt-1">+15,8% vs mês anterior</p>
+    </Card>
+    <Card>
+        <p class="text-sm text-[var(--muted-foreground)]">Crescimento %</p>
+        <p class="text-2xl font-bold mt-1">28,4%</p>
+        <p class="text-sm text-green-500 mt-1">+4,2% vs mês anterior</p>
+    </Card>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="lg:col-span-2">
+        <Card>
+            <div class="px-6 py-4 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold">Receitas vs Despesas</h3>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 text-sm rounded-lg @(activeTab == "monthly" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--secondary)]")" @onclick="SetTabMonthly">Mensal</button>
+                        <button class="px-3 py-1 text-sm rounded-lg @(activeTab == "quarterly" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--secondary)]")" @onclick="SetTabQuarterly">Trimestral</button>
+                        <button class="px-3 py-1 text-sm rounded-lg @(activeTab == "yearly" ? "bg-[var(--primary)] text-white" : "hover:bg-[var(--secondary)]")" @onclick="SetTabYearly">Anual</button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <ApexChart TItem="MonthlyData" Options="revenueExpensesOptions" Height="350">
+                    <ApexPointSeries TItem="MonthlyData"
+                                     Items="monthlyData"
+                                     Name="Receita"
+                                     SeriesType="SeriesType.Area"
+                                     XValue="e => e.Label"
+                                     YValue="e => e.Revenue" />
+                    <ApexPointSeries TItem="MonthlyData"
+                                     Items="monthlyData"
+                                     Name="Despesas"
+                                     SeriesType="SeriesType.Area"
+                                     XValue="e => e.Label"
+                                     YValue="e => e.Expenses" />
+                </ApexChart>
+            </div>
+        </Card>
+    </div>
+    <div>
+        <Card>
+            <div class="px-6 py-4 border-b border-[var(--border)]">
+                <h3 class="font-semibold">Detalhamento de Orçamento</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                @foreach (var budget in budgetData)
+                {
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span>@budget.Category</span>
+                            <span class="text-[var(--muted-foreground)]">@budget.Spent.ToString("C0") / @budget.Allocated.ToString("C0")</span>
+                        </div>
+                        <div class="h-3 bg-[var(--secondary)] rounded-full overflow-hidden">
+                            <div class="h-full rounded-full @GetBudgetColorClass(budget)" style="width: @budget.Percentage%"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </Card>
+    </div>
+</div>
+
+<Card Class="mb-6">
+    <div class="px-6 py-4 border-b border-[var(--border)]">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold">Transações Recentes</h3>
+            <div class="flex gap-3">
+                <div class="relative">
+                    <input type="text"
+                           placeholder="Buscar transações..."
+                           class="px-4 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                           @bind="searchQuery" />
+                </div>
+                <input type="date"
+                       class="px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-[var(--background)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                       @bind="filterDate" />
+            </div>
+        </div>
+    </div>
+    <div class="p-6">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-[var(--border)]">
+                        <th class="text-left py-3 px-4 font-medium text-[var(--muted-foreground)]">Data</th>
+                        <th class="text-left py-3 px-4 font-medium text-[var(--muted-foreground)]">Descrição</th>
+                        <th class="text-left py-3 px-4 font-medium text-[var(--muted-foreground)]">Categoria</th>
+                        <th class="text-right py-3 px-4 font-medium text-[var(--muted-foreground)]">Valor</th>
+                        <th class="text-center py-3 px-4 font-medium text-[var(--muted-foreground)]">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in filteredTransactions)
+                    {
+                        <tr class="border-b border-[var(--border)] hover:bg-[var(--secondary)]/50">
+                            <td class="py-3 px-4">@transaction.Date.ToString("dd/MM/yyyy")</td>
+                            <td class="py-3 px-4 font-medium">@transaction.Description</td>
+                            <td class="py-3 px-4">
+                                <span class="px-2 py-1 text-xs rounded-full bg-[var(--secondary)]">@transaction.Category</span>
+                            </td>
+                            <td class="py-3 px-4 text-right font-medium @(transaction.Amount >= 0 ? "text-green-500" : "text-red-500")">
+                                @transaction.Amount.ToString("C0")
+                            </td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-1 text-xs rounded-full @GetStatusClass(transaction.Status)">
+                                    @GetStatusLabel(transaction.Status)
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</Card>
+@code {
+    private string activeTab = "monthly";
+    private string searchQuery = "";
+    private DateTime? filterDate;
+
+    private List<MonthlyData> monthlyData = new()
+    {
+        new("Jan", 42000, 18500),
+        new("Fev", 45000, 19200),
+        new("Mar", 38000, 17800),
+        new("Abr", 52000, 21500),
+        new("Mai", 48000, 20100),
+        new("Jun", 55000, 22800),
+        new("Jul", 51000, 21200),
+        new("Ago", 58000, 23500),
+        new("Set", 62000, 24800),
+        new("Out", 59000, 23900),
+        new("Nov", 65000, 25200),
+        new("Dez", 72000, 27100)
+    };
+
+    private List<BudgetItem> budgetData = new()
+    {
+        new("Marketing", 45000, 50000, 90),
+        new("Operações", 32000, 40000, 80),
+        new("P&D", 28000, 35000, 80),
+        new("RH", 15000, 20000, 75)
+    };
+
+    private List<Transaction> transactions = new()
+    {
+        new(DateTime.Parse("2024-12-15"), "Pagamento de Cliente - Acme Corp", "Receita", 12500, "Completed"),
+        new(DateTime.Parse("2024-12-14"), "Licença de Software", "Despesas", -2400, "Completed"),
+        new(DateTime.Parse("2024-12-13"), "Serviços de Consultoria", "Receita", 8750, "Pending"),
+        new(DateTime.Parse("2024-12-12"), "Suprimentos de Escritório", "Despesas", -340, "Completed"),
+        new(DateTime.Parse("2024-12-11"), "Pagamento de Cliente - TechStart", "Receita", 15200, "Completed"),
+        new(DateTime.Parse("2024-12-10"), "Hospedagem em Nuvem", "Despesas", -1890, "Failed"),
+        new(DateTime.Parse("2024-12-09"), "Workshop de Treinamento", "Receita", 4500, "Completed"),
+        new(DateTime.Parse("2024-12-08"), "Campanha de Marketing", "Despesas", -3200, "Pending"),
+        new(DateTime.Parse("2024-12-07"), "Pagamento de Cliente - GlobalTech", "Receita", 9800, "Completed"),
+        new(DateTime.Parse("2024-12-06"), "Manutenção de Equipamentos", "Despesas", -1250, "Completed")
+    };
+
+    private IEnumerable<Transaction> filteredTransactions =>
+        transactions
+            .Where(t => string.IsNullOrEmpty(searchQuery) ||
+                         t.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                         t.Category.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+            .Where(t => !filterDate.HasValue || t.Date.Date == filterDate.Value.Date);
+
+    private ApexChartOptions<MonthlyData> revenueExpensesOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        Colors = new List<string> { "var(--chart-1)", "var(--chart-2)" },
+        Grid = new Grid { BorderColor = "var(--border)" },
+        Xaxis = new XAxis
+        {
+            Labels = new XAxisLabels
+            {
+                Style = new AxisLabelStyle { Colors = "var(--muted-foreground)" }
+            }
+        },
+        Yaxis = new List<YAxis>
+        {
+            new YAxis
+            {
+                Labels = new YAxisLabels
+                {
+                    Style = new AxisLabelStyle { Colors = "var(--muted-foreground)" },
+                    Formatter = "function(val) { return '$' + val.toLocaleString(); }"
+                }
+            }
+        },
+        Legend = new Legend
+        {
+            Position = LegendPosition.Top,
+            HorizontalAlign = Align.Right,
+            Labels = new LegendLabels { Colors = "var(--foreground)" }
+        },
+        Fill = new Fill
+        {
+            Type = new List<FillType> { FillType.Gradient, FillType.Gradient },
+            Gradient = new FillGradient
+            {
+                ShadeIntensity = 1,
+                OpacityFrom = 0.45,
+                OpacityTo = 0.05,
+                Stops = new List<double> { 50, 100, 100 }
+            }
+        },
+        Tooltip = new Tooltip
+        {
+            Y = new TooltipY
+            {
+                Formatter = "function(val) { return '$' + val.toLocaleString(); }"
+            }
+        }
+    };
+
+    private void SetTabMonthly() { activeTab = "monthly"; }
+    private void SetTabQuarterly() { activeTab = "quarterly"; }
+    private void SetTabYearly() { activeTab = "yearly"; }
+
+    private string GetBudgetColorClass(BudgetItem budget)
+    {
+        if (budget.Percentage >= 90) return "bg-red-500";
+        if (budget.Percentage >= 75) return "bg-yellow-500";
+        return "bg-green-500";
+    }
+
+    private string GetStatusLabel(string status) => status switch
+    {
+        "Completed" => "Concluído",
+        "Pending" => "Pendente",
+        "Failed" => "Falhou",
+        _ => status
+    };
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Completed" => "bg-green-100 text-green-700",
+            "Pending" => "bg-yellow-100 text-yellow-700",
+            "Failed" => "bg-red-100 text-red-700",
+            _ => "bg-gray-100 text-gray-700"
+        };
+    }
+
+    public record MonthlyData(string Label, decimal Revenue, decimal Expenses);
+    public record BudgetItem(string Category, decimal Spent, decimal Allocated, int Percentage);
+    public record Transaction(DateTime Date, string Description, string Category, decimal Amount, string Status);
+}

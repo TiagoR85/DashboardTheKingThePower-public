@@ -1,0 +1,17 @@
+services:
+  dashboard:
+    build: .
+    container_name: dashboard-king-power
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    # O proxy nginx (assistentepessoal-nginx-1) serve
+    # dashboardthekingthepower.tiagords.com.br -> http://dashboard-king-power:80.
+    # A rede externa garante o DNS interno sobreviva a todo recreate do container.
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: assistentepessoal_default

@@ -1,0 +1,37 @@
+@inject IJSRuntime JS
+
+<div class="flex gap-2">
+    @foreach (var accent in accents)
+    {
+        <button 
+            @onclick="() => SetAccent(accent.Key)"
+            class="w-6 h-6 rounded-full border-2 @(currentAccent == accent.Key ? "border-white" : "border-transparent")"
+            style="background-color: @accent.Value">
+        </button>
+    }
+</div>
+
+@code {
+    private string currentAccent = "emerald";
+    
+    private Dictionary<string, string> accents = new()
+    {
+        ["emerald"] = "oklch(0.55 0.19 160)",
+        ["blue"] = "oklch(0.55 0.19 240)",
+        ["violet"] = "oklch(0.55 0.19 280)",
+        ["rose"] = "oklch(0.55 0.19 350)",
+        ["orange"] = "oklch(0.55 0.19 50)",
+        ["slate"] = "oklch(0.55 0.02 260)"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentAccent = await JS.InvokeAsync<string>("getAccent");
+    }
+
+    private async Task SetAccent(string accent)
+    {
+        await JS.InvokeVoidAsync("setAccent", accent);
+        currentAccent = accent;
+    }
+}

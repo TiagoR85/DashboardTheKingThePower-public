@@ -1,0 +1,201 @@
+@page "/ecommerce"
+@using DashboardTheKingThePower.Components.ui
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>eCommerce</PageTitle>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold">eCommerce</h1>
+    <div class="flex items-center gap-2">
+        <select class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)] text-sm" @bind="sortBy">
+            <option value="featured">Destaque</option>
+            <option value="price-asc">Preço: Menor para Maior</option>
+            <option value="price-desc">Preço: Maior para Menor</option>
+            <option value="rating">Avaliação</option>
+        </select>
+        <button class="px-3 py-2 border border-[var(--border)] rounded-lg hover:bg-[var(--secondary)] relative" @onclick="ToggleCart">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            @if (cart.Any())
+            {
+                <span class="absolute -top-1 -right-1 w-5 h-5 bg-[var(--primary)] text-white text-xs rounded-full flex items-center justify-center">@cart.Sum(c => c.Quantity)</span>
+            }
+        </button>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+    <Card>
+        <div class="p-4">
+            <p class="text-sm font-medium mb-3">Categorias</p>
+            <div class="space-y-2">
+                @foreach (var cat in categories)
+                {
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" checked="@(selectedCategories.Contains(cat))" @onchange="() => ToggleCategory(cat)" class="rounded border-[var(--border)]" />
+                        @cat
+                    </label>
+                }
+            </div>
+        </div>
+    </Card>
+    <div class="lg:col-span-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            @foreach (var product in filteredProducts)
+            {
+                <Card>
+                    <div class="relative">
+                        <div class="aspect-square bg-[var(--muted)] rounded-t-lg flex items-center justify-center text-6xl">
+                            @product.Emoji
+                        </div>
+                        @if (product.Discount > 0)
+                        {
+                            <span class="absolute top-2 left-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full">-@product.Discount%</span>
+                        }
+                    </div>
+                    <div class="p-4">
+                        <p class="text-xs text-[var(--muted-foreground)] mb-1">@product.Category</p>
+                        <h3 class="font-semibold mb-2">@product.Name</h3>
+                        <div class="flex items-center gap-1 mb-2">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                var idx = i;
+                                <span class="text @(idx <= product.Rating ? "text-yellow-400" : "text-gray-300")">★</span>
+                            }
+                            <span class="text-xs text-[var(--muted-foreground)] ml-1">(@product.Reviews)</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-lg font-bold">$@product.Price</span>
+                                @if (product.OldPrice > 0)
+                                {
+                                    <span class="text-sm text-[var(--muted-foreground)] line-through ml-2">$@product.OldPrice</span>
+                                }
+                            </div>
+                            <button class="px-3 py-1.5 bg-[var(--primary)] text-white text-sm rounded-lg hover:opacity-90" @onclick="() => AddToCart(product)">
+                                Adicionar ao Carrinho
+                            </button>
+                        </div>
+                    </div>
+                </Card>
+            }
+        </div>
+    </div>
+</div>
+
+@if (showCart)
+{
+    <Modal IsOpen="true" OnClose="ToggleCart">
+        <div class="p-6">
+            <h2 class="text-lg font-semibold mb-4">Carrinho de Compras</h2>
+            @if (!cart.Any())
+            {
+                <p class="text-[var(--muted-foreground)]">Seu carrinho está vazio.</p>
+            }
+            else
+            {
+                <div class="space-y-4 mb-4">
+                    @foreach (var item in cart)
+                    {
+                        var cartItem = item;
+                        <div class="flex items-center gap-4 p-3 border border-[var(--border)] rounded-lg">
+                            <div class="text-3xl">@cartItem.Product.Emoji</div>
+                            <div class="flex-1">
+                                <p class="font-medium">@cartItem.Product.Name</p>
+                                <p class="text-sm text-[var(--muted-foreground)]">$@cartItem.Product.Price x @cartItem.Quantity</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="w-7 h-7 rounded border border-[var(--border)] hover:bg-[var(--secondary)]" @onclick="() => UpdateQuantity(cartItem, -1)">-</button>
+                                <span class="text-sm w-6 text-center">@cartItem.Quantity</span>
+                                <button class="w-7 h-7 rounded border border-[var(--border)] hover:bg-[var(--secondary)]" @onclick="() => UpdateQuantity(cartItem, 1)">+</button>
+                                <button class="text-red-500 hover:text-red-600" @onclick="() => RemoveFromCart(cartItem)">×</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="border-t border-[var(--border)] pt-4">
+                    <div class="flex justify-between mb-4">
+                        <span class="font-semibold">Total:</span>
+                        <span class="font-bold text-lg">$@cart.Sum(c => c.Product.Price * c.Quantity)</span>
+                    </div>
+                    <button class="w-full py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90">Checkout</button>
+                </div>
+            }
+        </div>
+    </Modal>
+}
+@code {
+    private string sortBy = "featured";
+    private bool showCart = false;
+    private List<string> selectedCategories = new();
+    private List<CartItem> cart = new();
+
+    private string[] categories = new[] { "Eletrônicos", "Roupas", "Casa", "Esportes", "Livros" };
+
+    private List<Product> products = new()
+    {
+        new(1, "Wireless Headphones", "Eletrônicos", 79.99m, 99.99m, 20, 4, 128, "🎧"),
+        new(2, "Smart Watch", "Eletrônicos", 199.99m, 249.99m, 20, 5, 256, "⌚"),
+        new(3, "Running Shoes", "Esportes", 89.99m, 0m, 0, 4, 89, "👟"),
+        new(4, "Coffee Maker", "Casa", 49.99m, 69.99m, 29, 4, 67, "☕"),
+        new(5, "Yoga Mat", "Esportes", 29.99m, 0m, 0, 5, 134, "🧘"),
+        new(6, "Bluetooth Speaker", "Eletrônicos", 59.99m, 79.99m, 25, 4, 198, "🔊"),
+        new(7, "Desk Lamp", "Casa", 34.99m, 44.99m, 22, 3, 45, "💡"),
+        new(8, "Backpack", "Roupas", 44.99m, 0m, 0, 4, 112, "🎒"),
+        new(9, "Novel Collection", "Livros", 24.99m, 34.99m, 29, 5, 76, "📚")
+    };
+
+    private IEnumerable<Product> filteredProducts
+    {
+        get
+        {
+            var filtered = products.Where(p => !selectedCategories.Any() || selectedCategories.Contains(p.Category));
+            return sortBy switch
+            {
+                "price-asc" => filtered.OrderBy<Product, decimal>(p => p.Price),
+                "price-desc" => filtered.OrderByDescending<Product, decimal>(p => p.Price),
+                "rating" => filtered.OrderByDescending<Product, int>(p => p.Rating),
+                _ => filtered.OrderBy<Product, int>(p => p.Id)
+            };
+        }
+    }
+
+    private void ToggleCategory(string cat)
+    {
+        if (selectedCategories.Contains(cat))
+            selectedCategories.Remove(cat);
+        else
+            selectedCategories.Add(cat);
+    }
+
+    private void ToggleCart() { showCart = !showCart; }
+
+    private void AddToCart(Product product)
+    {
+        var existing = cart.FirstOrDefault(c => c.Product.Id == product.Id);
+        if (existing != null)
+            existing.Quantity++;
+        else
+            cart.Add(new CartItem(product, 1));
+    }
+
+    private void UpdateQuantity(CartItem item, int delta)
+    {
+        item.Quantity += delta;
+        if (item.Quantity <= 0)
+            cart.Remove(item);
+    }
+
+    private void RemoveFromCart(CartItem item) { cart.Remove(item); }
+
+    public record Product(int Id, string Name, string Category, decimal Price, decimal OldPrice, int Discount, int Rating, int Reviews, string Emoji);
+    public class CartItem
+    {
+        public Product Product { get; }
+        public int Quantity { get; set; }
+        public CartItem(Product product, int quantity) { Product = product; Quantity = quantity; }
+    }
+}

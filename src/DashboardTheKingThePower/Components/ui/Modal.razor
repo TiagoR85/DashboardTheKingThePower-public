@@ -1,0 +1,15 @@
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/50" @onclick="OnClose"></div>
+        <div class="relative bg-[var(--background)] rounded-xl shadow-xl max-w-lg w-full mx-4">
+            @ChildContent
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,0 +1,40 @@
+@page "/ui/buttons"
+@using DashboardTheKingThePower.Components.ui
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Botões</PageTitle>
+
+<h1 class="text-2xl font-bold mb-1">Botões</h1>
+<p class="text-sm text-[var(--muted-foreground)] mb-6">Variantes, tamanhos e estados do componente <code>Button</code>.</p>
+
+<div class="space-y-8 max-w-4xl">
+    <section>
+        <h2 class="font-semibold mb-3">Variantes</h2>
+        <div class="flex flex-wrap gap-3">
+            <Button Variant="primary">Primário</Button>
+            <Button Variant="secondary">Secundário</Button>
+            <Button Variant="ghost">Fantasma</Button>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="font-semibold mb-3">Tamanhos</h2>
+        <div class="flex flex-wrap items-center gap-3">
+            <Button Size="sm">Pequeno</Button>
+            <Button Size="md">Médio</Button>
+            <Button Size="lg">Grande</Button>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="font-semibold mb-3">Estados</h2>
+        <div class="flex flex-wrap gap-3">
+            <Button Disabled>Desativado</Button>
+            <Button>
+                Com ícone
+                <svg aria-hidden="true" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </Button>
+        </div>
+    </section>
+</div>

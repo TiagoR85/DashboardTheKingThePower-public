@@ -1,0 +1,147 @@
+@page "/register"
+@layout AuthLayout
+@attribute [AllowAnonymous]
+@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Authorization
+@inject AuthStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Cadastro</PageTitle>
+
+<div class="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="w-12 h-12 rounded-xl bg-[var(--primary)] flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold">Criar conta</h1>
+            <p class="text-[var(--muted-foreground)] mt-1">Comece sua avaliação gratuita</p>
+        </div>
+
+        <Card>
+            <div class="p-6">
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                        @_errorMessage
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(_successMessage))
+                {
+                    <div class="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">
+                        @_successMessage
+                    </div>
+                }
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Nome</label>
+                            <input @bind="_firstName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="John" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Sobrenome</label>
+                            <input @bind="_lastName" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="Doe" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">E-mail</label>
+                        <input type="email" @bind="_email" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="you@example.com" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Senha</label>
+                        <input type="password" @bind="_password" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="••••••••" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Confirmar senha</label>
+                        <input type="password" @bind="_confirmPassword" class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--background)]" placeholder="••••••••" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" @bind="_agreedToTerms" id="terms" class="rounded border-[var(--border)]" />
+                        <label for="terms" class="text-sm">Eu concordo com os <a href="#" class="text-[var(--primary)] hover:underline">Termos</a> e a <a href="#" class="text-[var(--primary)] hover:underline">Política de Privacidade</a></label>
+                    </div>
+                    <button @onclick="HandleRegister" disabled="@_isLoading" class="w-full py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50">
+                        @if (_isLoading)
+                        {
+                            <span>Criando conta...</span>
+                        }
+                        else
+                        {
+                            <span>Criar conta</span>
+                        }
+                    </button>
+                </div>
+                <div class="mt-6 text-center text-sm">
+                    <span class="text-[var(--muted-foreground)]">Já tem uma conta?</span>
+                    <a href="login" class="text-[var(--primary)] hover:underline ml-1">Entrar</a>
+                </div>
+            </div>
+        </Card>
+    </div>
+</div>
+
+@code {
+    private string _firstName = "";
+    private string _lastName = "";
+    private string _email = "";
+    private string _password = "";
+    private string _confirmPassword = "";
+    private bool _agreedToTerms;
+    private bool _isLoading;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private async Task HandleRegister()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_email) || string.IsNullOrWhiteSpace(_password) || string.IsNullOrWhiteSpace(_firstName))
+        {
+            _errorMessage = "Preencha todos os campos obrigatórios.";
+            _isLoading = false;
+            return;
+        }
+
+        if (_password != _confirmPassword)
+        {
+            _errorMessage = "As senhas não coincidem.";
+            _isLoading = false;
+            return;
+        }
+
+        if (_password.Length < 6)
+        {
+            _errorMessage = "A senha deve ter pelo menos 6 caracteres.";
+            _isLoading = false;
+            return;
+        }
+
+        if (!_agreedToTerms)
+        {
+            _errorMessage = "Você deve aceitar os Termos e a Política de Privacidade.";
+            _isLoading = false;
+            return;
+        }
+
+        try
+        {
+            var name = $"{_firstName} {_lastName}".Trim();
+            await AuthStateProvider.RegisterAsync(name, _email, _password);
+            _successMessage = "Conta criada com sucesso! Redirecionando...";
+            await Task.Delay(1000);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

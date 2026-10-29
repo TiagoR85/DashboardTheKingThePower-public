@@ -1,0 +1,286 @@
+@page "/charts"
+@using DashboardTheKingThePower.Components.ui
+@using ApexCharts
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Gráficos</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Biblioteca de Gráficos</h1>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico de Linha</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="lineOptions" Height="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="lineData"
+                                 Name="Receita"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico de Área</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="areaOptions" Height="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="areaData"
+                                 Name="Usuários"
+                                 SeriesType="SeriesType.Area"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico de Barras</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="barOptions" Height="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="barData"
+                                 Name="Vendas"
+                                 SeriesType="SeriesType.Bar"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico de Rosca</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="donutOptions" Height="300" Width="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="donutData"
+                                 SeriesType="SeriesType.Donut"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico Misto (Linha + Barras)</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="mixedOptions" Height="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="mixedBarData"
+                                 Name="Receita"
+                                 SeriesType="SeriesType.Bar"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+                <ApexPointSeries TItem="ChartData"
+                                 Items="mixedLineData"
+                                 Name="Lucro"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico de Radar</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="radarOptions" Height="300" Width="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="radarData"
+                                 Name="Habilidades"
+                                 SeriesType="SeriesType.Radar"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Gráfico de Pizza</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="pieOptions" Height="300" Width="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="pieData"
+                                 SeriesType="SeriesType.Pie"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Barra Radial</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="ChartData" Options="radialOptions" Height="300" Width="300">
+                <ApexPointSeries TItem="ChartData"
+                                 Items="radialData"
+                                 SeriesType="SeriesType.RadialBar"
+                                 XValue="e => e.Label"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+
+    <Card>
+        <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h3 class="font-semibold">Mapa de Calor</h3>
+        </div>
+        <div class="p-6">
+            <ApexChart TItem="HeatmapData" Options="heatmapOptions" Height="300">
+                <ApexPointSeries TItem="HeatmapData"
+                                 Items="heatmapData"
+                                 Name="Atividade"
+                                 SeriesType="SeriesType.Heatmap"
+                                 XValue="e => e.Day"
+                                 YValue="e => e.Value" />
+            </ApexChart>
+        </div>
+    </Card>
+</div>
+@code {
+    private ApexChartOptions<ChartData> lineOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        Colors = new List<string> { "var(--chart-1)" },
+        Grid = new Grid { BorderColor = "var(--border)" }
+    };
+
+    private ApexChartOptions<ChartData> areaOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 2 },
+        Colors = new List<string> { "var(--chart-2)" },
+        Fill = new Fill { Type = FillType.Gradient, Opacity = 0.3 },
+        Grid = new Grid { BorderColor = "var(--border)" }
+    };
+
+    private ApexChartOptions<ChartData> barOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 4, ColumnWidth = "60%" } },
+        Colors = new List<string> { "var(--chart-3)" },
+        Grid = new Grid { BorderColor = "var(--border)" }
+    };
+
+    private ApexChartOptions<ChartData> donutOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Colors = new List<string> { "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)" },
+        Legend = new Legend { Position = LegendPosition.Bottom }
+    };
+
+    private ApexChartOptions<ChartData> mixedOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Colors = new List<string> { "var(--chart-1)", "var(--chart-3)" },
+        PlotOptions = new PlotOptions { Bar = new PlotOptionsBar { BorderRadius = 4, ColumnWidth = "60%" } },
+        Stroke = new Stroke { Curve = Curve.Smooth, Width = 3 },
+        Grid = new Grid { BorderColor = "var(--border)" }
+    };
+
+    private ApexChartOptions<ChartData> radarOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Colors = new List<string> { "var(--chart-1)" },
+        Stroke = new Stroke { Width = 2 },
+        Markers = new Markers { Size = new Size(4) }
+    };
+
+    private ApexChartOptions<ChartData> pieOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Colors = new List<string> { "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)" },
+        Legend = new Legend { Position = LegendPosition.Bottom }
+    };
+
+    private ApexChartOptions<ChartData> radialOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        Colors = new List<string> { "var(--chart-1)", "var(--chart-2)", "var(--chart-3)" },
+        PlotOptions = new PlotOptions { RadialBar = new PlotOptionsRadialBar { DataLabels = new RadialBarDataLabels { Name = new RadialBarDataLabelsName { Show = true } } } }
+    };
+
+    private ApexChartOptions<HeatmapData> heatmapOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        PlotOptions = new PlotOptions { },
+        Colors = new List<string> { "var(--chart-1)" }
+    };
+
+    private List<ChartData> lineData = new()
+    {
+        new("Jan", 30), new("Fev", 40), new("Mar", 35), new("Abr", 50), new("Mai", 49), new("Jun", 60), new("Jul", 70), new("Ago", 91)
+    };
+
+    private List<ChartData> areaData = new()
+    {
+        new("Jan", 1200), new("Fev", 1800), new("Mar", 1500), new("Abr", 2100), new("Mai", 2400), new("Jun", 2200), new("Jul", 2800), new("Ago", 3200)
+    };
+
+    private List<ChartData> barData = new()
+    {
+        new("Seg", 44), new("Ter", 55), new("Qua", 41), new("Qui", 67), new("Sex", 22), new("Sáb", 43), new("Dom", 21)
+    };
+
+    private List<ChartData> donutData = new()
+    {
+        new("Chrome", 44), new("Firefox", 28), new("Safari", 18), new("Edge", 7), new("Outros", 3)
+    };
+
+    private List<ChartData> mixedBarData = new()
+    {
+        new("Jan", 30), new("Fev", 40), new("Mar", 35), new("Abr", 50), new("Mai", 49), new("Jun", 60)
+    };
+
+    private List<ChartData> mixedLineData = new()
+    {
+        new("Jan", 20), new("Fev", 28), new("Mar", 22), new("Abr", 35), new("Mai", 30), new("Jun", 42)
+    };
+
+    private List<ChartData> radarData = new()
+    {
+        new("HTML", 80), new("CSS", 75), new("JavaScript", 90), new("React", 85), new("Node.js", 70), new("TypeScript", 88)
+    };
+
+    private List<ChartData> pieData = new()
+    {
+        new("Desktop", 45), new("Mobile", 35), new("Tablet", 20)
+    };
+
+    private List<ChartData> radialData = new()
+    {
+        new("Velocidade", 80), new("Confiabilidade", 90), new("Recursos", 70)
+    };
+
+    private List<HeatmapData> heatmapData = new()
+    {
+        new("Seg", 20), new("Ter", 45), new("Qua", 30), new("Qui", 65), new("Sex", 80), new("Sáb", 40), new("Dom", 15)
+    };
+
+    public record ChartData(string Label, decimal Value);
+    public record HeatmapData(string Day, decimal Value);
+}

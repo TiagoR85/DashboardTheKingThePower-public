@@ -1,0 +1,168 @@
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IJSRuntime JS
+@inject AuthStateProvider AuthStateProvider
+
+<header class="sticky top-0 z-10 h-16 bg-[var(--background)] border-b border-[var(--border)] flex items-center px-6 gap-6">
+    <div class="flex-1 max-w-xl">
+        <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" placeholder="Buscar..." class="w-full h-10 pl-10 pr-12 rounded-lg bg-[var(--secondary)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[var(--muted-foreground)] bg-[var(--background)] border border-[var(--border)] px-1.5 py-0.5 rounded">Ctrl+K</span>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-3 ml-auto">
+        <button class="h-10 px-4 rounded-lg bg-[var(--primary)] text-white text-sm font-medium flex items-center gap-2 hover:opacity-90">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Novo Pedido
+        </button>
+
+        <button class="p-2 rounded-lg hover:bg-[var(--secondary)] text-[var(--foreground)]" @onclick="ToggleTheme">
+            @if (_isDark)
+            {
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            }
+            else
+            {
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            }
+        </button>
+
+        <div class="relative">
+            <button class="p-2 rounded-lg hover:bg-[var(--secondary)] text-[var(--foreground)]" @onclick="ToggleAccentPicker">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                </svg>
+            </button>
+            @if (_showAccentPicker)
+            {
+                <div class="absolute right-0 top-full mt-2 p-3 bg-[var(--popover)] border border-[var(--border)] rounded-lg shadow-lg z-50">
+                    <p class="text-xs text-[var(--muted-foreground)] mb-2">Cor de Destaque</p>
+                    <div class="flex gap-2">
+                        @foreach (var accent in _accents)
+                        {
+                            <button
+                                @onclick="() => SetAccent(accent.Key)"
+                                class="w-6 h-6 rounded-full border-2 @(_currentAccent == accent.Key ? "border-white ring-2 ring-[var(--ring)]" : "border-transparent")"
+                                style="background-color: @accent.Value">
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <button class="p-2 rounded-lg hover:bg-[var(--secondary)] text-[var(--foreground)] relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-[var(--destructive)] rounded-full"></span>
+        </button>
+
+        <div class="relative">
+            <button @onclick="ToggleUserMenu" class="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center cursor-pointer">
+                <span class="text-white text-xs font-medium">@_userInitials</span>
+            </button>
+            @if (_showUserMenu)
+            {
+                <div class="absolute right-0 top-full mt-2 w-48 bg-[var(--popover)] border border-[var(--border)] rounded-lg shadow-lg z-50">
+                    <div class="p-3 border-b border-[var(--border)]">
+                        <p class="font-medium text-sm">@_userName</p>
+                        <p class="text-xs text-[var(--muted-foreground)]">@_userEmail</p>
+                    </div>
+                    <div class="p-1">
+                        <a href="settings" class="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-[var(--secondary)]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Configurações
+                        </a>
+                        <button @onclick="HandleLogout" class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-[var(--secondary)] text-red-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                            Sair
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</header>
+
+@code {
+    [Parameter] public EventCallback OnToggleSidebar { get; set; }
+
+    private bool _isDark;
+    private bool _showAccentPicker;
+    private bool _showUserMenu;
+    private string _currentAccent = "emerald";
+    private string _userName = "Usuário";
+    private string _userEmail = "";
+    private string _userInitials = "U";
+
+    private Dictionary<string, string> _accents = new()
+    {
+        ["emerald"] = "oklch(0.55 0.19 160)",
+        ["blue"] = "oklch(0.55 0.19 240)",
+        ["violet"] = "oklch(0.55 0.19 280)",
+        ["rose"] = "oklch(0.55 0.19 350)",
+        ["orange"] = "oklch(0.55 0.19 50)",
+        ["slate"] = "oklch(0.55 0.02 260)"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var theme = await JS.InvokeAsync<string>("getTheme");
+        _isDark = theme == "dark";
+        _currentAccent = await JS.InvokeAsync<string>("getAccent");
+
+        var user = await AuthStateProvider.GetCurrentUserAsync();
+        if (user != null)
+        {
+            _userName = user.Name;
+            _userEmail = user.Email;
+            _userInitials = user.Name.Split(' ').Select(n => n[0].ToString()).Aggregate((a, b) => a + b).ToUpper();
+            if (_userInitials.Length > 2) _userInitials = _userInitials.Substring(0, 2);
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        var theme = await JS.InvokeAsync<string>("toggleTheme");
+        _isDark = theme == "dark";
+    }
+
+    private void ToggleAccentPicker()
+    {
+        _showAccentPicker = !_showAccentPicker;
+    }
+
+    private void ToggleUserMenu()
+    {
+        _showUserMenu = !_showUserMenu;
+    }
+
+    private async Task SetAccent(string accent)
+    {
+        await JS.InvokeVoidAsync("setAccent", accent);
+        _currentAccent = accent;
+        _showAccentPicker = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        _showUserMenu = false;
+        await AuthStateProvider.LogoutAsync();
+    }
+}

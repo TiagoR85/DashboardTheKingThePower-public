@@ -1,0 +1,42 @@
+@using DashboardTheKingThePower.Components.ui
+
+<div class="rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]">
+    <div class="px-6 py-4 border-b border-[var(--border)]">
+        <h3 class="font-semibold">Últimas Transações</h3>
+    </div>
+    <table class="w-full">
+        <thead>
+            <tr class="border-b border-[var(--border)]">
+                <th class="text-left py-3 px-6 text-sm font-medium text-[var(--muted-foreground)]">Cliente</th>
+                <th class="text-left py-3 text-sm font-medium text-[var(--muted-foreground)]">Serviço</th>
+                <th class="text-left py-3 text-sm font-medium text-[var(--muted-foreground)]">Data</th>
+                <th class="text-left py-3 text-sm font-medium text-[var(--muted-foreground)]">Status</th>
+                <th class="text-right py-3 px-6 text-sm font-medium text-[var(--muted-foreground)]">Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in transactions)
+            {
+                <tr class="border-b border-[var(--border)]">
+                    <td class="py-3 px-6">@transaction.Client</td>
+                    <td class="py-3">@transaction.Service</td>
+                    <td class="py-3 text-[var(--muted-foreground)]">@transaction.Date</td>
+                    <td class="py-3"><Badge Variant="@transaction.StatusVariant">@transaction.Status</Badge></td>
+                    <td class="py-3 px-6 text-right font-medium">R$ @transaction.Amount</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<Transaction> transactions = new()
+    {
+        new("John Smith", "Corte", "06/08/2026", "Concluído", "success", 45),
+        new("Sarah Johnson", "Coloração", "05/08/2026", "Concluído", "success", 120),
+        new("Mike Davis", "Modelagem", "05/08/2026", "Pendente", "warning", 85),
+        new("Emily Brown", "Tratamento", "04/08/2026", "Concluído", "success", 95)
+    };
+    
+    private record Transaction(string Client, string Service, string Date, string Status, string StatusVariant, decimal Amount);
+}

@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* dark mode por classe no <html class="dark"> (equivalente ao darkMode:'class' do CDN antigo) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* fontes das classes utilitárias: razor + literais de classe em C# + html/js */
+@source "../**/*.razor";
+@source "../**/*.cs";
+@source "../wwwroot/index.html";
+@source "../wwwroot/js/*.js";

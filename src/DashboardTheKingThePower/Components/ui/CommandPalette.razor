@@ -1,0 +1,264 @@
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+@if (_isOpen)
+{
+    <div class="fixed inset-0 z-[100] flex items-start justify-center pt-[20vh]">
+        <div class="absolute inset-0 bg-black/60" @onclick="Close"></div>
+        <div class="relative bg-[var(--background)] border border-[var(--border)] rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            <div class="flex items-center border-b border-[var(--border)] px-4">
+                <svg class="w-5 h-5 text-[var(--muted-foreground)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input
+                    @ref="searchInput"
+                    type="text"
+                    placeholder="Buscar páginas, ações..."
+                    class="flex-1 h-12 px-3 bg-transparent text-sm focus:outline-none"
+                    value="@_searchTerm"
+                    @oninput="OnSearch"
+                    @onkeydown="OnKeyDown">
+                <kbd class="hidden sm:inline-flex items-center text-[10px] text-[var(--muted-foreground)] bg-[var(--secondary)] border border-[var(--border)] px-1.5 py-0.5 rounded">ESC</kbd>
+            </div>
+
+            <div class="max-h-80 overflow-y-auto p-2">
+                @if (!_groups.Any())
+                {
+                    <p class="text-center text-sm text-[var(--muted-foreground)] py-8">Nenhum resultado encontrado.</p>
+                }
+                else
+                {
+                    @foreach (var group in _groups)
+                    {
+                        <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">@group.Name</p>
+                        @foreach (var item in group.Items)
+                        {
+                            var isSelected = _selectedIndex == GetGlobalIndex(group, item);
+                            <button
+                                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left @(isSelected ? "bg-[var(--secondary)]" : "hover:bg-[var(--secondary)]")"
+                                @onclick="() => ExecuteItem(item)"
+                                @onmouseenter="() => _selectedIndex = GetGlobalIndex(group, item)">
+                                <span class="text-lg">@item.Icon</span>
+                                <div class="flex-1 min-w-0">
+                                    <span class="text-sm font-medium">@item.Label</span>
+                                    @if (!string.IsNullOrEmpty(item.Description))
+                                    {
+                                        <span class="block text-xs text-[var(--muted-foreground)] truncate">@item.Description</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(item.Shortcut))
+                                {
+                                    <kbd class="text-[10px] text-[var(--muted-foreground)] bg-[var(--background)] border border-[var(--border)] px-1.5 py-0.5 rounded">@item.Shortcut</kbd>
+                                }
+                                else
+                                {
+                                    <svg class="w-4 h-4 text-[var(--muted-foreground)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                }
+                            </button>
+                        }
+                    }
+                }
+            </div>
+
+            <div class="border-t border-[var(--border)] px-4 py-2 flex items-center gap-4 text-[10px] text-[var(--muted-foreground)]">
+                <span class="flex items-center gap-1"><kbd class="bg-[var(--secondary)] border border-[var(--border)] px-1 py-0.5 rounded">↑↓</kbd> Navegar</span>
+                <span class="flex items-center gap-1"><kbd class="bg-[var(--secondary)] border border-[var(--border)] px-1 py-0.5 rounded">↵</kbd> Selecionar</span>
+                <span class="flex items-center gap-1"><kbd class="bg-[var(--secondary)] border border-[var(--border)] px-1 py-0.5 rounded">Esc</kbd> Fechar</span>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isOpen;
+    private string _searchTerm = "";
+    private int _selectedIndex;
+    private ElementReference searchInput;
+
+    private record CommandItem(string Label, string Action, string Icon, string? Description = null, string? Shortcut = null);
+
+    private record CommandGroup(string Name, List<CommandItem> Items);
+
+    private List<CommandGroup> _allGroups = new()
+    {
+        new("Páginas", new List<CommandItem>
+        {
+            new("Dashboard", "dashboard", "📊", "Visão geral do dashboard principal"),
+            new("Análises", "analytics", "📈", "Análises e relatórios"),
+            new("Projetos", "projects", "📋", "Gerenciamento de projetos"),
+            new("Aplicações", "applications", "📱", "Aplicações instaladas"),
+            new("Calendário", "calendar", "📅", "Calendário e eventos"),
+            new("Kanban", "kanban", "📌", "Quadro Kanban"),
+            new("Gráficos", "charts", "📉", "Gráficos e visualizações"),
+            new("Perfil", "profile", "👤", "Meu perfil"),
+            new("Contatos", "contacts", "📇", "Agenda de contatos"),
+            new("Planos", "pricing", "💎", "Planos e preços"),
+            new("FAQ", "faq", "❓", "Perguntas frequentes"),
+        }),
+        new("UI", new List<CommandItem>
+        {
+            new("Botões", "ui/buttons", "🔘", "Variantes de botões"),
+            new("Alertas", "ui/alerts", "🚨", "Mensagens de feedback"),
+            new("Badges", "ui/badges", "🏷️", "Etiquetas e status"),
+            new("Cards", "ui/cards", "🃏", "Superfícies de conteúdo"),
+            new("Tipografia", "ui/typography", "🔤", "Escala de textos"),
+            new("Modais", "ui/modals", "🪟", "Diálogos"),
+            new("Tabelas", "ui/tables", "📋", "Padrões de tabela"),
+        }),
+        new("Comércio", new List<CommandItem>
+        {
+            new("eCommerce", "ecommerce", "🛍️", "Visão geral do eCommerce"),
+            new("Pedidos", "orders", "📦", "Gerenciar pedidos"),
+            new("Produtos", "products", "🏷️", "Gerenciar produtos"),
+            new("Favoritos", "wishlist", "💜", "Lista de desejos"),
+            new("Checkout", "checkout", "🧾", "Finalizar compra"),
+            new("Faturas", "invoices", "🧾", "Gerenciar faturas"),
+        }),
+        new("Negócios", new List<CommandItem>
+        {
+            new("CRM", "crm", "👥", "Gestão de relacionamento com o cliente"),
+            new("SaaS", "saas", "☁️", "Métricas de SaaS"),
+            new("Clientes", "clientes", "👤", "Gerenciar clientes"),
+            new("Serviços", "servicos", "🔧", "Gerenciar serviços"),
+            new("Agendamentos", "agendamentos", "📅", "Gerenciar agendamentos"),
+        }),
+        new("Comunicação", new List<CommandItem>
+        {
+            new("E-mail", "mail", "✉️", "Caixa de entrada"),
+            new("Chat", "chat", "💬", "Chat da equipe"),
+            new("Arquivos", "files", "📁", "Gerenciador de arquivos"),
+        }),
+        new("Ações", new List<CommandItem>
+        {
+            new("Alternar tema", "action:theme", "🌓", null, "T"),
+            new("Destaque: Esmeralda", "action:accent:emerald", "🟢"),
+            new("Destaque: Azul", "action:accent:blue", "🔵"),
+            new("Destaque: Violeta", "action:accent:violet", "🟣"),
+            new("Destaque: Rosa", "action:accent:rose", "🔴"),
+            new("Destaque: Laranja", "action:accent:orange", "🟠"),
+            new("Destaque: Slate", "action:accent:slate", "⚪"),
+            new("Configurações", "settings", "⚙️", "Configurações da aplicação"),
+        }),
+    };
+
+    private List<CommandGroup> _groups = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groups = _allGroups;
+        await JS.InvokeVoidAsync("addKeydownListener", DotNetObjectReference.Create(this));
+    }
+
+    [JSInvokable]
+    public async Task Open()
+    {
+        _isOpen = true;
+        _searchTerm = "";
+        _selectedIndex = 0;
+        _groups = _allGroups;
+        StateHasChanged();
+        await Task.Delay(50);
+        try { await searchInput.FocusAsync(); } catch { }
+    }
+
+    private void Close()
+    {
+        _isOpen = false;
+        _searchTerm = "";
+    }
+
+    private void OnSearch(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? "";
+        _selectedIndex = 0;
+
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _groups = _allGroups;
+            return;
+        }
+
+        _groups = _allGroups
+            .Select(g => new CommandGroup(g.Name, g.Items
+                .Where(i => i.Label.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                            (i.Description?.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList()))
+            .Where(g => g.Items.Any())
+            .ToList();
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        var totalItems = _groups.Sum(g => g.Items.Count);
+        if (totalItems == 0) return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _selectedIndex = (_selectedIndex + 1) % totalItems;
+                StateHasChanged();
+                break;
+            case "ArrowUp":
+                _selectedIndex = (_selectedIndex - 1 + totalItems) % totalItems;
+                StateHasChanged();
+                break;
+            case "Enter":
+                var item = GetItemByIndex(_selectedIndex);
+                if (item != null) ExecuteItem(item);
+                break;
+            case "Escape":
+                Close();
+                break;
+        }
+    }
+
+    private int GetGlobalIndex(CommandGroup group, CommandItem item)
+    {
+        int index = 0;
+        foreach (var g in _groups)
+        {
+            foreach (var i in g.Items)
+            {
+                if (g == group && i == item) return index;
+                index++;
+            }
+        }
+        return 0;
+    }
+
+    private CommandItem? GetItemByIndex(int index)
+    {
+        int current = 0;
+        foreach (var g in _groups)
+        {
+            foreach (var i in g.Items)
+            {
+                if (current == index) return i;
+                current++;
+            }
+        }
+        return null;
+    }
+
+    private void ExecuteItem(CommandItem item)
+    {
+        _isOpen = false;
+        StateHasChanged();
+
+        if (item.Action.StartsWith("action:theme"))
+        {
+            _ = JS.InvokeVoidAsync("toggleTheme");
+        }
+        else if (item.Action.StartsWith("action:accent:"))
+        {
+            var accent = item.Action.Split(":")[2];
+            _ = JS.InvokeVoidAsync("setAccent", accent);
+        }
+        else
+        {
+            Navigation.NavigateTo(item.Action);
+        }
+    }
+}

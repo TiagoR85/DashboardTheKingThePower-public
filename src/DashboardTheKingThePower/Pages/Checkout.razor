@@ -1,0 +1,176 @@
+@page "/checkout"
+@using DashboardTheKingThePower.Components.ui
+@using DashboardTheKingThePower.Models
+@using DashboardTheKingThePower.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject CartService CartService
+@inject OrderService OrderService
+@inject AuthStateProvider AuthState
+@inject ToastService Toast
+@inject NavigationManager Navigation
+
+<PageTitle>Checkout</PageTitle>
+
+<h1 class="text-2xl font-bold mb-6">Finalizar compra</h1>
+
+@if (_confirmed != null)
+{
+    <Card Class="max-w-xl mx-auto">
+        <ChildContent>
+            <div class="text-center py-6">
+                <div class="w-14 h-14 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto text-2xl">✓</div>
+                <h2 class="text-lg font-semibold mt-4">Pedido confirmado!</h2>
+                <p class="text-sm text-[var(--muted-foreground)] mt-2">Pedido <strong>@_confirmed.Id</strong> criado com sucesso.</p>
+                <p class="text-sm text-[var(--muted-foreground)] mt-1">Total: <strong>R$ @_confirmed.Total.ToString("N2")</strong></p>
+                <div class="flex justify-center gap-3 mt-6">
+                    <Button OnClick='() => Navigation.NavigateTo($"orders/{_confirmed.Id}")'>Ver pedido</Button>
+                    <Button Variant="secondary" OnClick='() => Navigation.NavigateTo("products")'>Continuar comprando</Button>
+                </div>
+            </div>
+        </ChildContent>
+    </Card>
+}
+else if (!_loaded)
+{
+    <div class="flex items-center justify-center py-16"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary)]"></div></div>
+}
+else if (_cart.Count == 0)
+{
+    <Card Class="max-w-xl mx-auto">
+        <ChildContent>
+            <div class="text-center py-8">
+                <p class="text-sm text-[var(--muted-foreground)]">Seu carrinho está vazio.</p>
+                <div class="mt-4"><Button Variant="secondary" OnClick='() => Navigation.NavigateTo("products")'>Ver produtos</Button></div>
+            </div>
+        </ChildContent>
+    </Card>
+}
+else
+{
+    var totals = CartService.CalculateTotals(_cart, _express);
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <Card>
+                <ChildContent>
+                    <h2 class="font-semibold mb-4">Itens do carrinho</h2>
+                    <div class="divide-y divide-[var(--border)]">
+                        @foreach (var item in _cart)
+                        {
+                            <div class="flex items-center justify-between py-3 gap-4">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-medium truncate">@item.Name</p>
+                                    <p class="text-xs text-[var(--muted-foreground)]">R$ @item.Price.ToString("N2") cada</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center border border-[var(--border)] rounded-lg">
+                                        <button class="px-2 py-1 text-sm hover:bg-[var(--secondary)]" @onclick="() => ChangeQty(item, -1)">−</button>
+                                        <span class="px-2 text-sm">@item.Qty</span>
+                                        <button class="px-2 py-1 text-sm hover:bg-[var(--secondary)]" @onclick="() => ChangeQty(item, +1)">+</button>
+                                    </div>
+                                    <span class="text-sm font-medium w-24 text-right">R$ @((item.Price * item.Qty).ToString("N2"))</span>
+                                    <button class="text-red-500 hover:text-red-600 text-sm" @onclick="() => Remove(item)">Remover</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </ChildContent>
+            </Card>
+
+            <Card>
+                <ChildContent>
+                    <h2 class="font-semibold mb-4">Entrega</h2>
+                    <label class="flex items-center gap-3 text-sm p-3 border rounded-lg cursor-pointer @(!_express ? "border-[var(--primary)]" : "border-[var(--border)]")">
+                        <input type="radio" name="frete" checked="@(!_express)" @onchange="() => _express = false" />
+                        <span>Padrão (3–7 dias) — grátis acima de R$ 200,00</span>
+                    </label>
+                    <label class="flex items-center gap-3 text-sm p-3 border rounded-lg cursor-pointer mt-2 @(_express ? "border-[var(--primary)]" : "border-[var(--border)]")">
+                        <input type="radio" name="frete" checked="@_express" @onchange="() => _express = true" />
+                        <span>Expressa (1–2 dias) — R$ 24,90</span>
+                    </label>
+                </ChildContent>
+            </Card>
+
+            <Card>
+                <ChildContent>
+                    <h2 class="font-semibold mb-4">Pagamento (demonstração)</h2>
+                    <div class="space-y-3">
+                        <input class="w-full px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--muted)] text-sm" value="**** **** **** 4242" disabled />
+                        <div class="grid grid-cols-2 gap-3">
+                            <input class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--muted)] text-sm" value="12/30" disabled />
+                            <input class="px-3 py-2 border border-[var(--border)] rounded-lg bg-[var(--muted)] text-sm" value="***" disabled />
+                        </div>
+                        <p class="text-xs text-[var(--muted-foreground)]">Cartão de teste simulado — nenhum dado real é processado.</p>
+                    </div>
+                </ChildContent>
+            </Card>
+        </div>
+
+        <div>
+            <Card>
+                <ChildContent>
+                    <h2 class="font-semibold mb-4">Resumo</h2>
+                    <dl class="space-y-2 text-sm">
+                        <div class="flex justify-between"><dt class="text-[var(--muted-foreground)]">Subtotal</dt><dd>R$ @totals.Subtotal.ToString("N2")</dd></div>
+                        <div class="flex justify-between"><dt class="text-[var(--muted-foreground)]">Frete</dt><dd>@(totals.Frete == 0 ? "Grátis" : $"R$ {totals.Frete:N2}")</dd></div>
+                        <div class="flex justify-between font-bold text-base border-t border-[var(--border)] pt-2"><dt>Total</dt><dd>R$ @totals.Total.ToString("N2")</dd></div>
+                    </dl>
+                    <div class="mt-6">
+                        <Button OnClick="PlaceOrder" Disabled="_placing">Confirmar pedido</Button>
+                    </div>
+                    <p class="text-xs text-[var(--muted-foreground)] mt-3">Ambiente de demonstração: nenhum cobrança real é feita.</p>
+                </ChildContent>
+            </Card>
+        </div>
+    </div>
+}
+
+@code {
+    private List<CartItem> _cart = new();
+    private bool _express = false;
+    private PlacedOrder? _confirmed;
+    private bool _placing;
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cart = await CartService.GetAsync();
+        _loaded = true;
+    }
+
+    private async Task ChangeQty(CartItem item, int delta)
+    {
+        CartService.SetQty(_cart, item.ProductId, item.Qty + delta);
+        await CartService.SaveAsync(_cart);
+    }
+
+    private async Task Remove(CartItem item)
+    {
+        CartService.Remove(_cart, item.ProductId);
+        await CartService.SaveAsync(_cart);
+    }
+
+    private async Task PlaceOrder()
+    {
+        if (_placing || _cart.Count == 0) return;
+        _placing = true;
+        try
+        {
+            var user = await AuthState.GetCurrentUserAsync();
+            var order = OrderService.Build(_cart, user?.Name ?? "Cliente", _express);
+
+            var orders = await OrderService.GetAsync();
+            orders.Add(order);
+            await OrderService.SaveAsync(orders);
+            await CartService.ClearAsync();
+
+            _confirmed = order;
+            Toast.ShowSuccess("Pedido confirmado!");
+        }
+        finally
+        {
+            _placing = false;
+        }
+    }
+}
